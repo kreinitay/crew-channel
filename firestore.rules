@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // This app has no login system — same as before, anyone who has the
+    // page's link can read and post. Paste this into Firebase Console ->
+    // Firestore Database -> Rules, replacing what's there, then Publish.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
