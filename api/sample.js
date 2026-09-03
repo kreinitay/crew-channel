@@ -34,7 +34,13 @@ module.exports = async (req, res) => {
     });
 
     if (!groqRes.ok) {
-      res.status(groqRes.status === 429 ? 429 : 502).json({ error: "AI request failed" });
+      const errText = await groqRes.text().catch(() => "");
+      console.error("Groq error", groqRes.status, errText);
+      res.status(groqRes.status === 429 ? 429 : 502).json({
+        error: "AI request failed",
+        debug_status: groqRes.status,
+        debug_body: errText,
+      });
       return;
     }
 
@@ -42,6 +48,7 @@ module.exports = async (req, res) => {
     const text = data?.choices?.[0]?.message?.content || "";
     res.status(200).json({ text, truncated: false });
   } catch (e) {
-    res.status(502).json({ error: "AI request failed" });
+    console.error("sample.js exception", e);
+    res.status(502).json({ error: "AI request failed", debug_message: String(e) });
   }
 };
