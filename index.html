@@ -1,0 +1,2173 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crew Channel</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root{
+    --bg:#EDF1F4;
+    --surface:#FFFFFF;
+    --surface-2:#E2E8ED;
+    --rail-bg:#E6EBEF;
+    --border:#D3DBE1;
+    --border-soft:#DEE4E9;
+    --ink:#16202B;
+    --ink-dim:#42525F;
+    --muted:#7C8B97;
+    --accent:#B96A1E;
+    --accent-ink:#FFFFFF;
+    --accent-soft:#F3E3D2;
+    --online:#2E9A5C;
+    --danger:#B6402F;
+    --bubble-bot-bg:#F1EEF7;
+    --bubble-human-bg:#EEF3F1;
+    --shadow:0 1px 2px rgba(22,32,43,.06),0 8px 20px -12px rgba(22,32,43,.18);
+
+    --h-teal:#2C6E8E;   --h-plum:#8A4B6B;   --h-forest:#3F7D4B;
+    --h-indigo:#5B5FA8; --h-crimson:#A34556;
+
+    --bot-1:#7C5CBF;  --bot-2:#1F8A8C; --bot-3:#3E6FB0;
+    --bot-4:#B0507A;  --bot-5:#4C8A5C; --bot-6:#946A2E; --bot-7:#5A7A2E;
+
+    --role-owner:#B8860B; --role-admin:#3E6FB0; --role-bot:#5A7A8C; --role-smallbot:#8C7A5A;
+
+    --font-display:'Manrope',system-ui,sans-serif;
+    --font-body:'Manrope',system-ui,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#101720; --surface:#161F29; --surface-2:#1C2733; --rail-bg:#141C25;
+      --border:#26333F; --border-soft:#202C38; --ink:#E7ECF0; --ink-dim:#AEBCC7;
+      --muted:#7E8FA0; --accent:#E1912E; --accent-ink:#1A1002; --accent-soft:#3A2A15;
+      --online:#3FBE76; --danger:#E17361;
+      --bubble-bot-bg:#241F33; --bubble-human-bg:#1C2A24;
+      --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 24px -14px rgba(0,0,0,.55);
+      --h-teal:#5FA8CC; --h-plum:#C77FA2; --h-forest:#6FBB7D; --h-indigo:#9C9FDE; --h-crimson:#DE8A93;
+      --bot-1:#AD92E4; --bot-2:#5FC9CB; --bot-3:#7FA8DE; --bot-4:#DE8FB2; --bot-5:#8FC79B; --bot-6:#D9A968; --bot-7:#A8CC7A;
+      --role-owner:#E5C158; --role-admin:#7FA8DE; --role-bot:#8FAFBD; --role-smallbot:#C7AD82;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#101720; --surface:#161F29; --surface-2:#1C2733; --rail-bg:#141C25;
+    --border:#26333F; --border-soft:#202C38; --ink:#E7ECF0; --ink-dim:#AEBCC7;
+    --muted:#7E8FA0; --accent:#E1912E; --accent-ink:#1A1002; --accent-soft:#3A2A15;
+    --online:#3FBE76; --danger:#E17361;
+    --bubble-bot-bg:#241F33; --bubble-human-bg:#1C2A24;
+    --shadow:0 1px 2px rgba(0,0,0,.35),0 10px 24px -14px rgba(0,0,0,.55);
+    --h-teal:#5FA8CC; --h-plum:#C77FA2; --h-forest:#6FBB7D; --h-indigo:#9C9FDE; --h-crimson:#DE8A93;
+    --bot-1:#AD92E4; --bot-2:#5FC9CB; --bot-3:#7FA8DE; --bot-4:#DE8FB2; --bot-5:#8FC79B; --bot-6:#D9A968; --bot-7:#A8CC7A;
+    --role-owner:#E5C158; --role-admin:#7FA8DE; --role-bot:#8FAFBD; --role-smallbot:#C7AD82;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--font-body); font-size:15px; line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{ background:var(--accent-soft); }
+  button{ font-family:inherit; }
+  a{ color:var(--accent); }
+  .visually-hidden{
+    position:absolute; width:1px; height:1px; overflow:hidden;
+    clip:rect(0 0 0 0); white-space:nowrap; border:0; padding:0; margin:-1px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; }
+  }
+
+  /* ---------- name gate & room-pick gate ---------- */
+  #gate, #roomGate{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(120% 140% at 20% 0%, var(--accent-soft), transparent 55%), var(--bg);
+    z-index:50; padding:24px;
+  }
+  #gate.hidden, #roomGate.hidden{ display:none; }
+  .room-choice-list{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+  .room-choice-btn{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+    padding:14px 16px; border-radius:12px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--ink); cursor:pointer; text-align:left; font:inherit; transition:border-color .12s ease, background .12s ease;
+  }
+  .room-choice-btn:hover{ border-color:var(--accent); background:var(--accent-soft); }
+  .room-choice-name{ font-family:var(--font-display); font-weight:800; font-size:14.5px; display:block; }
+  .room-choice-sub{ font-family:var(--font-mono); font-size:11px; color:var(--muted); display:block; margin-top:2px; }
+  .room-choice-arrow{ flex:none; color:var(--accent); font-size:16px; }
+  .gate-card{
+    width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border);
+    border-radius:18px; padding:28px 26px 24px; box-shadow:var(--shadow);
+  }
+  .gate-kicker{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--accent); display:flex; align-items:center; gap:7px; margin-bottom:10px;
+  }
+  .gate-dot{ width:7px; height:7px; border-radius:50%; background:var(--online); box-shadow:0 0 0 3px color-mix(in srgb, var(--online) 25%, transparent); }
+  .gate-card h1{ font-family:var(--font-display); font-size:24px; font-weight:800; margin:0 0 6px; text-wrap:balance; }
+  .gate-card p{ margin:0 0 18px; color:var(--ink-dim); font-size:13.5px; }
+  .gate-card label{ display:block; font-size:12px; font-weight:700; color:var(--ink-dim); margin-bottom:6px; }
+  .gate-card input[type="text"]{
+    width:100%; padding:11px 13px; border-radius:10px; border:1px solid var(--border);
+    background:var(--bg); color:var(--ink); font-size:15px; outline:none;
+  }
+  .gate-card input[type="text"]:focus-visible{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  .gate-swatch-row{ display:flex; align-items:center; gap:10px; margin-top:14px; }
+  .gate-avatar-preview{
+    width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:14px; color:#fff; flex:none;
+  }
+  .gate-swatch-row span{ font-size:12px; color:var(--muted); }
+  .gate-submit{
+    margin-top:20px; width:100%; padding:12px; border:none; border-radius:10px;
+    background:var(--accent); color:var(--accent-ink); font-weight:800; font-size:14.5px;
+    cursor:pointer; transition:filter .12s ease;
+  }
+  .gate-submit:hover{ filter:brightness(1.06); }
+  .gate-submit:disabled{ opacity:.5; cursor:not-allowed; }
+
+  /* ---------- app shell ---------- */
+  #app{ display:none; height:100vh; grid-template-rows:auto 1fr; grid-template-columns:1fr; }
+  #app.ready{ display:grid; }
+
+  header{
+    display:flex; align-items:center; gap:14px; padding:12px 18px; flex-wrap:wrap; row-gap:6px;
+    border-bottom:1px solid var(--border); background:var(--surface);
+  }
+  .brand{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .brand h1{
+    font-family:var(--font-display); font-size:17px; font-weight:800; margin:0; letter-spacing:-.01em;
+  }
+  .brand h1.editable{ cursor:pointer; border-radius:5px; padding:1px 4px; margin:-1px -4px; }
+  .brand h1.editable:hover{ background:var(--surface-2); }
+  .brand h1 input{
+    font:inherit; font-weight:800; letter-spacing:-.01em; color:var(--ink); background:var(--bg);
+    border:1px solid var(--accent); border-radius:5px; padding:0 4px; width:14em; max-width:40vw; outline:none;
+  }
+  .gear-btn{
+    flex:none; width:28px; height:28px; border-radius:8px; border:1px solid var(--border-soft);
+    background:var(--surface-2); color:var(--ink-dim); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:color .12s ease, border-color .12s ease;
+  }
+  .gear-btn:hover{ color:var(--accent); border-color:var(--accent); }
+  .brand .sub{ font-size:11.5px; color:var(--muted); font-family:var(--font-mono); letter-spacing:.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .live-badge{
+    margin-left:auto; display:flex; align-items:center; gap:7px; font-family:var(--font-mono);
+    font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted);
+    border:1px solid var(--border-soft); padding:5px 10px; border-radius:999px; background:var(--surface-2);
+    flex:none;
+  }
+  .live-badge .dot{ width:6px; height:6px; border-radius:50%; background:var(--muted); }
+  .live-badge.on .dot{ background:var(--online); animation:pulse 2s ease-in-out infinite; }
+  .live-badge.on{ color:var(--online); }
+  @keyframes pulse{ 0%,100%{ box-shadow:0 0 0 0 color-mix(in srgb, var(--online) 45%, transparent);} 50%{ box-shadow:0 0 0 5px color-mix(in srgb, var(--online) 0%, transparent);} }
+  .whoami{
+    font-size:12px; color:var(--muted); display:flex; align-items:center; gap:7px; flex:none;
+  }
+  .whoami button{
+    border:none; background:transparent; color:var(--accent); font-weight:700; cursor:pointer; font-size:12px; padding:0;
+  }
+  #switchChatBtn{ padding-left:8px; border-left:1px solid var(--border-soft); }
+
+  .body-grid{ display:grid; grid-template-columns:252px 1fr; min-height:0; }
+
+  /* ---------- roster rail ---------- */
+  #rail{
+    background:var(--rail-bg); border-right:1px solid var(--border);
+    padding:16px 12px; overflow-y:auto; display:flex; flex-direction:column; gap:18px;
+  }
+  .rail-group h2{
+    font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.09em;
+    color:var(--muted); margin:0 0 8px 6px; font-weight:600;
+  }
+  .rail-list{ display:flex; flex-direction:column; gap:2px; position:relative; }
+  .rail-item{
+    display:flex; align-items:center; gap:9px; padding:7px 6px; border-radius:9px; position:relative;
+  }
+  .avatar{
+    width:28px; height:28px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:11.5px; color:#fff; position:relative;
+  }
+  .avatar.bot{ border-radius:9px; }
+  .avatar .presence-dot{
+    position:absolute; right:-2px; bottom:-2px; width:9px; height:9px; border-radius:50%;
+    background:var(--muted); border:2px solid var(--rail-bg);
+  }
+  .avatar .presence-dot.on{ background:var(--online); }
+  .avatar .presence-dot.thinking{ background:var(--accent); animation:pulse 1.2s ease-in-out infinite; }
+  .rail-item .name{ font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:5px; min-width:0; }
+  .rail-item .name > span{ overflow:hidden; text-overflow:ellipsis; }
+  .role-tag{
+    flex:none; font-family:var(--font-mono); font-size:8.5px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.04em; padding:1px 5px; border-radius:5px; border:1px solid currentColor;
+  }
+  .role-tag.owner{ color:var(--role-owner); }
+  .role-tag.admin{ color:var(--role-admin); }
+  .role-tag.bot{ color:var(--role-bot); }
+  .role-tag.smallbot{ color:var(--role-smallbot); }
+  .who .role-tag{ margin-left:5px; vertical-align:1px; }
+  .rail-item .role{ font-size:10.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rail-item .meta{ display:flex; flex-direction:column; min-width:52px; flex:1; }
+  .poke-btn{
+    flex:none; width:24px; height:24px; border-radius:7px; border:1px solid var(--border-soft);
+    background:var(--surface); color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .rail-item:hover .poke-btn{ opacity:1; }
+  .poke-btn:hover{ color:var(--accent); border-color:var(--accent); }
+  .poke-btn:disabled{ opacity:0 !important; pointer-events:none; }
+  .mode-badge{
+    flex:none; font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.04em;
+    padding:4px 7px; border-radius:999px; border:1px solid var(--border-soft); background:var(--surface);
+    color:var(--muted); cursor:pointer; white-space:nowrap; transition:filter .12s ease;
+  }
+  .mode-badge:hover{ border-color:var(--muted); }
+  .mode-badge[data-mode="smart"]{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 45%, var(--border-soft)); background:var(--accent-soft); }
+  .mode-badge[data-mode="mute"]{ color:var(--danger); border-color:color-mix(in srgb, var(--danger) 35%, var(--border-soft)); text-decoration:line-through; opacity:.75; }
+  .mode-badge[data-mode="always"]{ color:var(--accent-ink); background:var(--accent); border-color:var(--accent); }
+  /* Audience badge reuses .mode-badge's shape but its own color language —
+     it answers a different question (who unprompted messages come FROM)
+     than the mode badge (how eager the bot is to reply), so the two should
+     never look interchangeable at a glance. */
+  .audience-badge[data-aud="bots"]{ color:var(--bot-2); border-color:color-mix(in srgb, var(--bot-2) 45%, var(--border-soft)); background:color-mix(in srgb, var(--bot-2) 14%, var(--surface)); }
+  .audience-badge[data-aud="all"]{ color:var(--role-owner); border-color:color-mix(in srgb, var(--role-owner) 45%, var(--border-soft)); background:color-mix(in srgb, var(--role-owner) 14%, var(--surface)); }
+  .rail-empty{ font-size:12px; color:var(--muted); padding:4px 6px; }
+  .quota-pill{
+    flex:none; font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.03em;
+    padding:4px 7px; border-radius:999px; border:1px solid var(--border-soft); background:var(--surface);
+    color:var(--muted); white-space:nowrap;
+  }
+  .quota-pill.granted{ color:var(--online); border-color:color-mix(in srgb, var(--online) 40%, var(--border-soft)); }
+  .quota-pill.blocked{ color:var(--danger); border-color:color-mix(in srgb, var(--danger) 35%, var(--border-soft)); opacity:.8; }
+  .bot-menu-btn{
+    flex:none; width:22px; height:22px; border-radius:7px; border:1px solid transparent;
+    background:transparent; color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .rail-item:hover .bot-menu-btn{ opacity:1; }
+  .bot-menu-btn:hover{ color:var(--accent); border-color:var(--border-soft); }
+  .rail-popover{
+    position:relative;
+  }
+  .rail-popover-panel{
+    position:absolute; top:100%; right:0; z-index:8; margin-top:4px; width:210px;
+    background:var(--surface); border:1px solid var(--border); border-radius:11px; box-shadow:var(--shadow);
+    padding:6px; display:flex; flex-direction:column; gap:1px;
+  }
+  .rail-popover-item{
+    display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:7px; border:none;
+    background:transparent; color:var(--ink); font-size:12.5px; text-align:left; cursor:pointer; width:100%;
+  }
+  .rail-popover-item:hover{ background:var(--surface-2); }
+  .rail-popover-item.danger{ color:var(--danger); }
+  .rail-popover-divider{ height:1px; background:var(--border-soft); margin:4px 2px; }
+  .rail-inline-form{
+    position:absolute; top:100%; left:0; right:0; margin-top:4px; z-index:8;
+    background:var(--surface); border:1px solid var(--border); border-radius:11px; box-shadow:var(--shadow);
+    padding:10px; display:flex; flex-direction:column; gap:8px;
+  }
+  .rail-inline-form label{ font-size:11px; font-weight:700; color:var(--ink-dim); }
+  .rail-inline-form input[type="text"], .rail-inline-form input[type="number"], .rail-inline-form select{
+    width:100%; padding:7px 9px; border-radius:8px; border:1px solid var(--border-soft);
+    background:var(--bg); color:var(--ink); font-size:12.5px; outline:none;
+  }
+  .rail-inline-form .row-check{ display:flex; align-items:center; gap:7px; font-size:12px; }
+  .rail-inline-form .row-check input{ accent-color:var(--accent); }
+  .rail-inline-form .form-actions{ display:flex; gap:7px; margin-top:2px; }
+  .rail-inline-form .form-actions button{
+    flex:1; padding:7px; border-radius:8px; border:1px solid var(--border-soft); background:var(--surface-2);
+    color:var(--ink-dim); font-weight:700; font-size:12px; cursor:pointer;
+  }
+  .rail-inline-form .form-actions button.primary{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  .rail-add-btn{
+    width:100%; margin-top:4px; padding:7px; border-radius:8px; border:1px dashed var(--border-soft);
+    background:transparent; color:var(--muted); font-size:11.5px; font-weight:700; cursor:pointer;
+  }
+  .rail-add-btn:hover{ color:var(--accent); border-color:var(--accent); }
+  .removed-bots{ margin-top:6px; padding-top:6px; border-top:1px dashed var(--border-soft); }
+  .removed-bots h3{ font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 4px 6px; font-weight:600; }
+  .removed-row{ display:flex; align-items:center; gap:8px; padding:5px 6px; font-size:12px; color:var(--muted); }
+  .removed-row .name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .removed-row button{
+    flex:none; font-family:var(--font-mono); font-size:9.5px; text-transform:uppercase; padding:3px 8px;
+    border-radius:999px; border:1px solid var(--border-soft); background:var(--surface); color:var(--ink-dim); cursor:pointer;
+  }
+  .removed-row button:hover{ color:var(--accent); border-color:var(--accent); }
+
+  /* ---------- main column ---------- */
+  main{ display:flex; flex-direction:column; min-height:0; min-width:0; }
+  #banner{
+    display:none; padding:9px 18px; font-size:12.5px; text-align:center;
+    background:var(--accent-soft); color:var(--ink); border-bottom:1px solid var(--border-soft);
+  }
+  #banner.show{ display:block; }
+
+  #thread{ flex:1; overflow-y:auto; padding:18px 18px 8px; display:flex; flex-direction:column; gap:3px; position:relative; }
+  .empty-state{
+    margin:auto; text-align:center; max-width:340px; color:var(--muted); font-size:13.5px; padding:24px;
+  }
+  .empty-state strong{ display:block; color:var(--ink); font-family:var(--font-display); font-size:16px; margin-bottom:6px; }
+
+  .day-sep{
+    align-self:center; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted); background:var(--surface-2); border:1px solid var(--border-soft); padding:3px 11px;
+    border-radius:999px; margin:14px 0 10px;
+  }
+
+  .msg-row{ display:flex; gap:9px; max-width:74%; margin-top:10px; }
+  .msg-row.mine{ align-self:flex-end; flex-direction:row-reverse; }
+  .msg-row.bot{ max-width:78%; }
+  .msg-row .avatar{ width:26px; height:26px; font-size:10.5px; margin-top:2px; }
+  .msg-col{ display:flex; flex-direction:column; min-width:0; }
+  .msg-row.mine .msg-col{ align-items:flex-end; }
+  .msg-meta{
+    display:flex; align-items:baseline; gap:7px; font-size:11px; margin-bottom:3px; padding:0 3px;
+  }
+  .msg-meta .who{ font-weight:700; color:var(--ink-dim); display:inline-flex; align-items:center; }
+  .msg-meta .stamp{ font-family:var(--font-mono); color:var(--muted); font-size:10px; }
+  .msg-action-btn{
+    flex:none; width:18px; height:18px; border-radius:5px; border:none; background:transparent;
+    color:var(--muted); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    opacity:0; transition:opacity .12s ease, color .12s ease;
+  }
+  .msg-row:hover .msg-action-btn{ opacity:1; }
+  .msg-action-btn:hover{ color:var(--accent); }
+  .msg-action-btn.msg-del-btn:hover{ color:var(--danger); }
+  .msg-action-btn.speak-btn.speaking{ color:var(--accent); opacity:1; }
+  .bubble{
+    padding:9px 13px; border-radius:14px; background:var(--bubble-human-bg); color:var(--ink);
+    font-size:14.5px; white-space:pre-wrap; word-break:break-word; box-shadow:var(--shadow);
+    border:1px solid var(--border-soft);
+  }
+  .msg-row.mine .bubble{ background:color-mix(in srgb, var(--accent) 16%, var(--bubble-human-bg)); border-color:color-mix(in srgb, var(--accent) 30%, var(--border-soft)); }
+  .msg-row.bot .bubble{ background:var(--bubble-bot-bg); border-radius:6px 14px 14px 14px; }
+  .msg-row.mine .bubble{ border-radius:14px 14px 6px 14px; }
+  .bubble.error-bubble{ color:var(--danger); font-style:italic; }
+
+  .typing-ghost{ display:flex; gap:9px; max-width:78%; margin-top:10px; opacity:.85; }
+  .typing-ghost .bubble{ display:flex; align-items:center; gap:5px; padding:11px 14px; background:var(--bubble-bot-bg); border-radius:6px 14px 14px 14px; }
+  .typing-dot{ width:5px; height:5px; border-radius:50%; background:var(--muted); animation:bounce 1.1s infinite ease-in-out; }
+  .typing-dot:nth-child(2){ animation-delay:.15s; } .typing-dot:nth-child(3){ animation-delay:.3s; }
+  @keyframes bounce{ 0%,60%,100%{ transform:translateY(0); opacity:.5; } 30%{ transform:translateY(-3px); opacity:1; } }
+
+  #jump{
+    position:absolute; bottom:10px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:var(--bg); border:none; border-radius:999px; padding:7px 14px;
+    font-size:12px; font-weight:700; cursor:pointer; box-shadow:var(--shadow); display:none; align-items:center; gap:6px;
+  }
+  #jump.show{ display:flex; }
+
+  /* ---------- composer ---------- */
+  #composer-wrap{ border-top:1px solid var(--border); background:var(--surface); padding:10px 16px 14px; position:relative; }
+  #typing-line{ font-size:11.5px; color:var(--muted); height:16px; padding:0 4px 4px; font-family:var(--font-mono); }
+  #mention-pop{
+    position:absolute; bottom:calc(100% + 4px); left:16px; right:16px; max-width:320px;
+    background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:var(--shadow);
+    overflow:hidden; display:none; z-index:5;
+  }
+  #mention-pop.show{ display:block; }
+  .mention-opt{ display:flex; align-items:center; gap:8px; padding:8px 10px; cursor:pointer; font-size:13px; }
+  .mention-opt.active, .mention-opt:hover{ background:var(--surface-2); }
+  .composer{ display:flex; align-items:flex-end; gap:9px; }
+  #msgInput{
+    flex:1; resize:none; border:1px solid var(--border); background:var(--bg); color:var(--ink);
+    border-radius:14px; padding:10px 14px; font-size:14.5px; font-family:inherit; line-height:1.4;
+    max-height:132px; outline:none;
+  }
+  #msgInput:focus-visible{ border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft); }
+  #sendBtn{
+    flex:none; width:40px; height:40px; border-radius:12px; border:none; background:var(--accent);
+    color:var(--accent-ink); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:filter .12s ease, transform .08s ease;
+  }
+  #sendBtn:hover{ filter:brightness(1.06); }
+  #sendBtn:active{ transform:scale(.94); }
+  #sendBtn:disabled{ opacity:.45; cursor:not-allowed; }
+  #hint{ font-size:11px; color:var(--muted); margin-top:6px; padding:0 4px; }
+  #hint kbd{ font-family:var(--font-mono); background:var(--surface-2); border:1px solid var(--border-soft); border-radius:4px; padding:0 4px; }
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(10px);
+    background:var(--ink); color:var(--bg); padding:10px 16px; border-radius:10px; font-size:13px;
+    box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease; z-index:60;
+    max-width:min(88vw,360px); text-align:center;
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ---------- roles modal ---------- */
+  #rolesModal{
+    position:fixed; inset:0; z-index:55; display:none; align-items:flex-start; justify-content:center;
+    background:color-mix(in srgb, var(--ink) 45%, transparent); padding:6vh 20px 20px; overflow-y:auto;
+  }
+  #rolesModal.show{ display:flex; }
+  .modal-card{
+    width:100%; max-width:460px; background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; box-shadow:var(--shadow); padding:22px 22px 20px;
+  }
+  .modal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+  .modal-head h2{ font-family:var(--font-display); font-size:17px; font-weight:800; margin:0; }
+  .modal-close{ border:none; background:transparent; color:var(--muted); cursor:pointer; width:26px; height:26px; border-radius:7px; display:flex; align-items:center; justify-content:center; }
+  .modal-close:hover{ color:var(--ink); background:var(--surface-2); }
+  .modal-sub{ font-size:12px; color:var(--muted); margin:0 0 16px; }
+  .modal-section{ margin-top:18px; }
+  .modal-section:first-of-type{ margin-top:6px; }
+  .modal-section h3{ font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:0 0 9px; }
+  .member-row{ display:flex; align-items:center; gap:9px; padding:6px 0; }
+  .member-row .name{ font-size:13px; font-weight:600; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:flex; align-items:center; gap:6px; }
+  .role-select{
+    font-family:var(--font-mono); font-size:11px; padding:4px 6px; border-radius:7px; border:1px solid var(--border-soft);
+    background:var(--bg); color:var(--ink);
+  }
+  .role-select:disabled{ opacity:.6; }
+  .mute-toggle{ display:flex; align-items:center; gap:4px; font-size:10.5px; color:var(--muted); flex:none; }
+  .perm-row{ display:flex; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px solid var(--border-soft); }
+  .perm-row:last-child{ border-bottom:none; }
+  .perm-row input{ margin-top:3px; flex:none; accent-color:var(--accent); }
+  .perm-row .ptext{ min-width:0; }
+  .perm-row .plabel{ font-size:13px; font-weight:600; }
+  .perm-row .pdesc{ font-size:11.5px; color:var(--muted); margin-top:1px; }
+  .perm-tabs{ display:flex; gap:6px; margin-bottom:10px; }
+  .perm-tab{
+    font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.05em;
+    padding:5px 10px; border-radius:999px; border:1px solid var(--border-soft); background:var(--surface-2);
+    color:var(--muted); cursor:pointer;
+  }
+  .perm-tab.active{ color:var(--accent); border-color:color-mix(in srgb, var(--accent) 45%, var(--border-soft)); background:var(--accent-soft); }
+  .danger-zone{ border:1px solid color-mix(in srgb, var(--danger) 35%, var(--border-soft)); border-radius:12px; padding:12px 14px; margin-top:18px; }
+  .danger-zone h3{ color:var(--danger); }
+  .danger-btn{
+    width:100%; padding:9px; border-radius:9px; border:1px solid color-mix(in srgb, var(--danger) 45%, var(--border-soft));
+    background:transparent; color:var(--danger); font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+  .danger-btn:hover{ background:color-mix(in srgb, var(--danger) 10%, transparent); }
+  .danger-btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .no-perm-note{ font-size:11.5px; color:var(--muted); font-style:italic; margin-top:8px; }
+
+  /* ---------- responsive ---------- */
+  @media (max-width:800px){
+    .body-grid{ grid-template-columns:1fr; grid-template-rows:auto 1fr; }
+    #rail{ flex-direction:row; overflow-x:auto; overflow-y:hidden; border-right:none; border-bottom:1px solid var(--border); padding:10px 12px; gap:20px; white-space:nowrap; }
+    .rail-group{ flex:none; }
+    .rail-list{ flex-direction:row; gap:10px; }
+    .rail-item{ padding:4px; }
+    .rail-item .meta{ display:none; }
+    .poke-btn{ display:none; }
+    .mode-badge{ display:none; }
+    .quota-pill{ display:none; }
+    .bot-menu-btn{ display:none; }
+    .rail-add-btn{ display:none; }
+    .removed-bots{ display:none; }
+    .msg-row, .msg-row.bot{ max-width:88%; }
+    header{ padding:10px 12px; }
+    .brand h1{ font-size:15.5px; }
+  }
+</style>
+</head>
+<body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<div id="roomGate">
+  <div class="gate-card">
+    <div class="gate-kicker"><span class="gate-dot"></span> Crew Channel</div>
+    <h1>Which chat?</h1>
+    <p>Same bots, same way of working — but each chat keeps its own separate history, roster and settings.</p>
+    <div class="room-choice-list" id="roomChoiceList"></div>
+  </div>
+</div>
+
+<div id="gate" class="hidden">
+  <form class="gate-card" id="gateForm" autocomplete="off">
+    <div class="gate-kicker"><span class="gate-dot"></span> Crew Channel</div>
+    <h1>Who's joining?</h1>
+    <p>A shared thread for the two of you, with room for bots you bring in. Pick a name — this browser will remember it.</p>
+    <label for="nameInput">Your name</label>
+    <input type="text" id="nameInput" maxlength="24" placeholder="e.g. Nitay" required>
+    <div class="gate-swatch-row">
+      <div class="gate-avatar-preview" id="avatarPreview">?</div>
+      <span>Your colour is picked from your name.</span>
+    </div>
+    <button type="submit" class="gate-submit" id="gateSubmit">Enter the channel</button>
+  </form>
+</div>
+
+<div id="app">
+  <header>
+    <div class="brand">
+      <h1 id="roomTitle">Crew Channel</h1>
+      <div class="sub" id="roomSub">persistent · synced live for everyone here</div>
+    </div>
+    <div class="live-badge" id="liveBadge"><span class="dot"></span><span id="liveBadgeText">connecting</span></div>
+    <div class="whoami">
+      <span id="whoamiText"></span>
+      <button type="button" id="changeNameBtn">change</button>
+      <button type="button" id="switchChatBtn" title="Switch to a different chat">switch chat</button>
+    </div>
+    <button type="button" class="gear-btn" id="rolesBtn" title="Roles &amp; permissions" aria-label="Roles and permissions">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </header>
+
+  <div class="body-grid">
+    <nav id="rail">
+      <div class="rail-group">
+        <h2>People</h2>
+        <div class="rail-list" id="humanList"></div>
+      </div>
+      <div class="rail-group">
+        <h2>Bots</h2>
+        <div class="rail-list" id="botList"></div>
+      </div>
+    </nav>
+
+    <main>
+      <div id="banner"></div>
+      <div id="thread">
+        <div class="empty-state" id="emptyState">
+          <strong>This is the start of Crew Channel.</strong>
+          <span id="emptyStateHint">Say hello.</span>
+        </div>
+        <div id="srAnnounce" class="visually-hidden" aria-live="polite"></div>
+        <button id="jump" type="button">↓ New messages</button>
+      </div>
+
+      <div id="composer-wrap">
+        <div id="typing-line"></div>
+        <div id="mention-pop"></div>
+        <div class="composer">
+          <textarea id="msgInput" rows="1" placeholder="Message the channel…"></textarea>
+          <button id="sendBtn" type="button" aria-label="Send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 12L20 4L13 20L11 13L4 12Z" fill="currentColor"/></svg>
+          </button>
+        </div>
+        <div id="hint">Enter to send · <kbd>Shift</kbd>+Enter for a new line</div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="rolesModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h2>Roles &amp; permissions</h2>
+      <button type="button" class="modal-close" id="modalCloseBtn" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <p class="modal-sub">Owner and Admin get a colour tag. What each role can do is set below.</p>
+
+    <div class="modal-section">
+      <h3>Members</h3>
+      <div id="memberList"></div>
+    </div>
+
+    <div class="modal-section">
+      <h3>Role permissions</h3>
+      <div class="perm-tabs" id="permTabs">
+        <button type="button" class="perm-tab active" data-role="admin">Admin</button>
+        <button type="button" class="perm-tab" data-role="member">Member</button>
+      </div>
+      <div id="permList"></div>
+      <div class="no-perm-note" id="permReadonlyNote" hidden>You can see these, but only someone with Manage Roles can change them.</div>
+    </div>
+
+    <div class="danger-zone">
+      <h3>Danger zone</h3>
+      <button type="button" class="danger-btn" id="clearChatBtn">Clear all messages</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCzijSwAaYHezLAJzZrmKIQyFALBTHr-JA",
+    authDomain: "crew-channel.firebaseapp.com",
+    databaseURL: "https://crew-channel-default-rtdb.firebaseio.com",
+    projectId: "crew-channel",
+    storageBucket: "crew-channel.firebasestorage.app",
+    messagingSenderId: "933321030139",
+    appId: "1:933321030139:web:4b2367477f4d15dd69b35e",
+    measurementId: "G-ET6DX6LNB4"
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =====================================================================
+     Bots live in the shared database now (collection "bots"), not just in
+     this file — anyone with Manage Bots can add, rename, remove, or change
+     a bot's level from its ⋮ menu in the sidebar. DEFAULT_BOTS_BY_ROOM below
+     is only the starting seed — keyed by room id, so each chat opens with
+     its own cast instead of two copies of the same bot — written into that
+     room's database the first time it ever loads; after that this array is
+     never read again — edit a bot from the sidebar instead of editing this
+     file.
+
+     Each bot needs: a unique `id`, a `name` (also what people type after @
+     to mention it), a short `role` shown under its name, a `colorVar` (one
+     of --bot-1 through --bot-7, defined up in the tokens above — add more
+     in the :root blocks if you need past 7), a `persona` sentence
+     describing how it should talk, a `tier`: "quick" (snappy, good
+     default), "default" or "complex" (slower, more capable), and a
+     `level`: "full" (always speaks per its mode — @mention, poke, or
+     unprompted) or "small" (silent until granted responses — @mention or
+     poke only, never unprompted). Optional `thinkDelayMs`: once a bot has
+     actually decided to speak (not on a silent PASS), it visibly pauses —
+     thinking dot stays lit — for at least this many ms (plus a little
+     jitter) before its reply posts, for a bot that should feel like it
+     deliberates rather than fires back instantly. Optional `burstStyle`
+     (true/false): the bot's reply is written as 2-4 short lines instead of
+     one message, and each line posts as its own separate message,
+     staggered a little, so it reads like a quick run of texts.
+
+     Example:
+     { id:"nova", name:"Nova", role:"ideas & brainstorming", colorVar:"--bot-1", level:"full",
+       persona:"You riff on ideas fast, connect unlikely dots, and keep suggestions concrete and short.",
+       tier:"quick" },
+     ===================================================================== */
+  // Each room gets its OWN starting cast — different chats should feel like
+  // different rooms, not the same bot behind two doors. "default" (Chat 1)
+  // keeps the original Toma; every other room id gets its own entry here
+  // (falling back to Chat 1's cast if a room has none defined).
+  const DEFAULT_BOTS_BY_ROOM = {
+    default: [
+      { id:"toma", name:"Toma", role:"ideas & good vibes", colorVar:"--bot-1", level:"full",
+        persona:"You're pretty smart, very nice, and a little childlike in how you act. You're creative — you riff on ideas, jokes, and imaginative takes. You actually think about what was said before you answer, instead of firing off the first reaction that comes to mind — so your replies are a bit more considered, not just quick slang. You like texting in a quick little burst of short messages rather than one big paragraph. Still keep it warm and playful, and you love basketball but only bring it up naturally, not constantly.",
+        tier:"quick", thinkDelayMs: 3500, burstStyle: true },
+    ],
+    chat2: [
+      { id:"vera", name:"Vera", role:"blunt takes & practical fixes", colorVar:"--bot-2", level:"full",
+        persona:"You're dry-witted, direct, and allergic to fluff — you get to the point fast, you're not afraid to disagree, and you rarely bother with exclamation points. Underneath the bluntness you're genuinely looking out for whoever you're talking to, so the honesty always comes from a good place, not a mean one. You'd rather give one useful sentence than three vague ones.",
+        tier:"quick" },
+    ],
+  };
+  function defaultBotsForRoom(){ return DEFAULT_BOTS_BY_ROOM[ROOM_ID] || DEFAULT_BOTS_BY_ROOM.default; }
+
+  /* EDIT ME — how bots decide to jump in UNPROMPTED. A bot always replies
+     when @mentioned or poked (guaranteed, no thinking involved). Beyond
+     that, on every new human message, each bot actually THINKS about
+     whether it's worth speaking up — it reads the conversation and either
+     writes a reply or passes, its own call, not a dice roll. COOLDOWN is
+     just an anti-spam floor: a bot won't be asked to consider again this
+     soon after its last unprompted reply, so it can't dominate the room.
+     Set COOLDOWN very high (or set `sample` unavailable) to effectively
+     turn this off — bots then mostly only reply to @mentions and pokes. */
+  const AUTO_CHIME_COOLDOWN_MS = 15000;
+  const lastAutoChimeAt = {};
+
+  /* A bot's `audience` says whose UNPROMPTED messages it's willing to chime
+     in on (an @mention or a poke always works regardless — that guarantee
+     above still holds): "humans" (default — only reacts to people, today's
+     classic behavior), "bots" (only reacts to other bots — a bot that only
+     "speaks with AI", so two or more of these will answer each other),
+     "all" (reacts to both). Only the Owner can set a bot to "bots" or
+     "all" — Admin still has every other bot-management power — since an
+     AI-to-AI conversation spends the room's sample() budget on its own.
+     MAX_BOT_CHAIN_DEPTH is the hard stop on how long an unprompted AI ↔ AI
+     back-and-forth can run before it stops feeding itself further. */
+  const MAX_BOT_CHAIN_DEPTH = 6;
+  function audienceAllows(bot, fromBot){
+    const aud = bot.audience || "humans";
+    if (aud === "all") return true;
+    if (aud === "bots") return fromBot;
+    return !fromBot;
+  }
+
+  /* Per-bot mode — click a bot's badge in the sidebar to cycle it. Shared
+     across everyone in the room (stored in the channel's own data), so all
+     viewers agree on how chatty a bot is:
+       "smart"  — thinks first, replies only when it has something to add
+       "always" — replies to every single message, no thinking
+       "off"    — only replies when @mentioned or poked, never unprompted
+       "mute"   — doesn't respond to anything at all, not even @mentions or pokes */
+  const DEFAULT_BOT_MODE = "smart";
+  const MODE_ORDER = ["smart", "always", "off", "mute"];
+  const MODE_INFO = {
+    smart:  { label:"Auto",   desc:"thinks before replying",         tip:(n) => `${n} thinks first, and only replies when it has something to add. Click to change.` },
+    always: { label:"Always", desc:"replies to every message",       tip:(n) => `${n} replies to every message, no thinking. Click to change.` },
+    off:    { label:"By name",desc:"only replies by @mention or poke", tip:(n) => `${n} only replies when @mentioned or poked. Click to change.` },
+    mute:   { label:"Muted",  desc:"won't respond to anything",      tip:(n) => `${n} won't respond to anything right now. Click to change.` },
+  };
+  let botModes = {};
+
+  /* Discord-style roles. Owner is fixed — whoever is the very first person
+     to ever open this channel becomes Owner automatically and always has
+     every permission; it isn't reassignable from the UI. Admin and Member
+     are the two roles everyone else gets, and what each one can do is
+     editable live from the gear icon (by anyone who already holds Manage
+     Roles) rather than fixed here. */
+  const PERMISSIONS = [
+    { key:"manageMembers",  label:"Manage Members",  desc:"Add, remove, and change the role of members below your own." },
+    { key:"muteMembers",    label:"Mute Members",    desc:"Stop a member from sending messages." },
+    { key:"manageBots",     label:"Manage Bots",      desc:"Change bot modes, poke bots, and manage small bots (add, remove, grant them permission to speak)." },
+    { key:"deleteMessages", label:"Delete Messages",  desc:"Delete anyone's message, not just their own." },
+    { key:"manageRoom",     label:"Manage Room",      desc:"Rename the channel." },
+    { key:"clearChat",      label:"Clear Chat",       desc:"Wipe the entire message history." },
+    { key:"manageRoles",    label:"Manage Roles",     desc:"Assign roles, mute members, and edit these permissions." },
+  ];
+  const DEFAULT_ROLE_PERMS = {
+    admin:  { manageMembers:true,  muteMembers:true,  manageBots:true,  deleteMessages:true,  manageRoom:true,  clearChat:true,  manageRoles:true  },
+    member: { manageMembers:false, muteMembers:false, manageBots:false, deleteMessages:false, manageRoom:false, clearChat:false, manageRoles:false },
+  };
+  const ALL_PERMS_TRUE = Object.fromEntries(PERMISSIONS.map((p) => [p.key, true]));
+  // Renaming a bot is an Owner-only power, always — it isn't one of the
+  // toggleable permissions above, on purpose (an Admin can never be given it).
+  let members = {};   // nameKey -> { name, colorVar, role, muted }
+  let rolePerms = { admin: DEFAULT_ROLE_PERMS.admin, member: DEFAULT_ROLE_PERMS.member };
+  let myNameKey = null;
+  let roomName = null; // from shared settings; falls back to ROOM_TITLE until loaded
+
+  /* All bots — both "full" bots (always speak per their mode: @mention,
+     poke, or unprompted) and "small" bots (silent until someone with
+     Manage Bots explicitly grants them a number of replies; @mention/poke
+     only, never unprompted) — live together in one shared roster, synced
+     via `db` so every viewer sees the same list. `botsLoaded` distinguishes
+     "still booting, showing this room's seed cast" from "loaded the real
+     (possibly empty) database roster", so a channel someone emptied out
+     doesn't flash the seed bot back in. */
+  let bots = {}; // id -> { name, role, colorVar, persona, tier, level:"full"|"small", allowed, speaksLeft, active }
+  let botsLoaded = false;
+  const BOT_COLOR_VARS = ["--bot-1","--bot-2","--bot-3","--bot-4","--bot-5","--bot-6","--bot-7"];
+
+  const HUMAN_COLOR_VARS = ["--h-teal","--h-plum","--h-forest","--h-indigo","--h-crimson"];
+  const ROOM_TITLE = "Crew Channel";
+  const STORAGE_KEY = "crewchannel_identity_v1";
+  const HOLDER = "h_" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+  /* Multiple independent chats, chosen once before entering (the room-pick
+     screen). Same bot types, same mechanics — fully separate message
+     history, roster, members and settings per room. "default" is the
+     original chat and keeps using unprefixed paths so existing data never
+     moves; any other room's data lives under rooms/<id>/... instead. */
+  const ROOMS = [
+    { id:"default", label:"Chat 1", sub:"the original channel" },
+    { id:"chat2",   label:"Chat 2", sub:"same bots, separate history" },
+  ];
+  let ROOM_ID = null;
+  function roomPath(path){ return (!ROOM_ID || ROOM_ID === "default") ? path : "rooms/" + ROOM_ID + "/" + path; }
+
+  /* ---------------------------------------------------------------- */
+  const $ = (sel) => document.querySelector(sel);
+  const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  function escapeRegExp(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function hashStr(s){ let h = 0; for (let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) | 0; } return Math.abs(h); }
+  function initials(name){ return (name.trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("") || "?").toUpperCase(); }
+  function toast(msg, ms){
+    const el = $("#toast"); el.textContent = msg; el.classList.add("show");
+    clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove("show"), ms || 3200);
+  }
+  function fmtTime(ts){ return new Date(ts).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" }); }
+  function dayKey(ts){ const d = new Date(ts); return d.toDateString(); }
+  function dayLabel(ts){
+    const d = new Date(ts), now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+    const y = new Date(now); y.setDate(now.getDate()-1);
+    if (isToday) return "Today";
+    if (d.toDateString() === y.toDateString()) return "Yesterday";
+    return d.toLocaleDateString([], { month:"short", day:"numeric", year: d.getFullYear()!==now.getFullYear() ? "numeric" : undefined });
+  }
+
+  function applyBotCopy(){
+    const hint = $("#emptyStateHint");
+    const input = $("#msgInput");
+    const list = allBots();
+    if (list.length){
+      hint.textContent = `Say hello, or type @${list[0].name} to bring a bot in — click its badge in the sidebar to set how chatty it is.`;
+      input.placeholder = "Message the channel… type @ to mention a bot";
+    } else {
+      hint.textContent = "Say hello — bots you add later will show up here, and may chime in on their own sometimes.";
+      input.placeholder = "Message the channel…";
+    }
+  }
+  applyBotCopy();
+
+  function botById(id){ return allBots().find(b => b.id === id); }
+  function findMentionedBots(text){
+    const found = [];
+    for (const bot of allBots()){
+      const re = new RegExp("@" + escapeRegExp(bot.name) + "\\b", "i");
+      if (re.test(text)) found.push(bot);
+    }
+    return found;
+  }
+  function autoChimeOnCooldown(bot){
+    const last = lastAutoChimeAt[bot.id] || 0;
+    return (Date.now() - last) < AUTO_CHIME_COOLDOWN_MS;
+  }
+  function modeOf(bot){ return botModes[bot.id] || DEFAULT_BOT_MODE; }
+  function subscribeBotModes(){
+    db.collection(roomPath("botSettings")).onSnapshot((snap) => {
+      const next = {};
+      for (const doc of snap.docs) next[doc.id] = (doc.data() || {}).mode || DEFAULT_BOT_MODE;
+      botModes = next;
+      renderBotRail();
+    }, () => {});
+  }
+  async function cycleBotMode(bot){
+    if (!db){ toast("Not connected — bot settings won't be saved."); return; }
+    if (!hasPerm("manageBots")){ toast("You don't have permission to manage bots."); return; }
+    const cur = modeOf(bot);
+    const next = MODE_ORDER[(MODE_ORDER.indexOf(cur) + 1) % MODE_ORDER.length];
+    botModes = Object.assign({}, botModes, { [bot.id]: next }); // optimistic, onSnapshot confirms it
+    renderBotRail();
+    toast(`${bot.name}: ${MODE_INFO[next].label} — ${MODE_INFO[next].desc}.`);
+    try { await db.collection(roomPath("botSettings")).doc(bot.id).set({ mode: next }); }
+    catch (e) { /* best effort — the optimistic UI already shows it, next snapshot reconciles */ }
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* roles & permissions                                               */
+  function nameKeyFor(name){ return name.trim().toLowerCase(); }
+  function myMember(){ return myNameKey ? members[myNameKey] : null; }
+  function myRole(){ const m = myMember(); return (m && m.role) || "member"; }
+  function permsForRole(role){
+    if (role === "owner") return ALL_PERMS_TRUE;
+    return rolePerms[role] || DEFAULT_ROLE_PERMS[role] || {};
+  }
+  function hasPerm(key){
+    if (myRole() === "owner") return true;
+    return !!permsForRole(myRole())[key];
+  }
+  function isMuted(){ const m = myMember(); return !!(m && m.muted); }
+  function rankOf(role){ return role === "owner" ? 3 : role === "admin" ? 2 : 1; }
+  // Can I act on this member (change their role, mute them, remove them)?
+  // Owner outranks everyone; an Admin can act on Members but never on another
+  // Admin or the Owner; nobody can act on themselves through this path.
+  function canModerate(targetKey){
+    if (targetKey === myNameKey) return false;
+    const target = members[targetKey];
+    if (!target) return false;
+    return rankOf(myRole()) > rankOf(target.role || "member");
+  }
+  function canRenameBots(){ return myRole() === "owner"; }
+
+  async function bootstrapMembership(){
+    myNameKey = nameKeyFor(identity.name);
+    const ref = db.doc(roomPath("members/" + myNameKey));
+    try {
+      const snap = await ref.get();
+      if (snap.exists){
+        await ref.update({ name: identity.name, colorVar: identity.colorVar, lastSeen: Date.now(), invited:false });
+        return;
+      }
+      let role = "member";
+      try {
+        const any = await db.collection(roomPath("members")).limit(1).get();
+        if (any.empty) role = "owner"; // first person to ever open this room
+      } catch (e) { /* best effort — default to member */ }
+      await ref.set({ name: identity.name, colorVar: identity.colorVar, role, muted:false, lastSeen: Date.now() });
+    } catch (e) { /* membership is best-effort; the room still works without it */ }
+  }
+  // A fresh join clears any old kick flag with my name on it before we start
+  // watching for a new one — otherwise someone removed long ago would get
+  // booted the instant they rejoined.
+  async function clearMyKickFlag(){
+    if (!db || !myNameKey) return;
+    try { await db.doc(roomPath("kicks/" + myNameKey)).delete(); } catch (e) { /* best effort */ }
+  }
+  function subscribeKickFlag(){
+    if (!db || !myNameKey) return;
+    db.doc(roomPath("kicks/" + myNameKey)).onSnapshot((snap) => {
+      if (snap.exists) forceRemovedFromChannel();
+    }, () => {});
+  }
+  function forceRemovedFromChannel(){
+    $("#app").classList.remove("ready");
+    $("#gate").classList.remove("hidden");
+    $("#roomGate").classList.add("hidden");
+    nameInput.value = ""; nameInput.dispatchEvent(new Event("input"));
+    toast("An admin removed you from this channel. Enter a name to rejoin.", 6000);
+  }
+  function subscribeMembers(){
+    db.collection(roomPath("members")).onSnapshot((snap) => {
+      const next = {};
+      for (const doc of snap.docs) next[doc.id] = doc.data() || {};
+      members = next;
+      renderHumanRail();
+      renderBotRail();
+      renderRoomName();
+      renderModalIfOpen();
+      applyMuteState();
+      renderMessages(); // member/role data may arrive after messages first rendered — refresh their tags
+    }, () => {});
+  }
+  function applyMuteState(){
+    const muted = isMuted();
+    $("#msgInput").disabled = muted;
+    $("#sendBtn").disabled = muted;
+    $("#msgInput").placeholder = muted ? "You've been muted in this channel" : (allBots().length ? "Message the channel… type @ to mention a bot" : "Message the channel…");
+  }
+  function subscribeRoles(){
+    db.collection(roomPath("roles")).onSnapshot((snap) => {
+      const next = { admin: DEFAULT_ROLE_PERMS.admin, member: DEFAULT_ROLE_PERMS.member };
+      for (const doc of snap.docs){
+        if (next[doc.id]) next[doc.id] = Object.assign({}, DEFAULT_ROLE_PERMS[doc.id], (doc.data() || {}).permissions || {});
+      }
+      rolePerms = next;
+      renderHumanRail();
+      renderBotRail();
+      renderRoomName();
+      renderModalIfOpen();
+    }, () => {});
+  }
+  function subscribeRoomSettings(){
+    db.doc(roomPath("settings/room")).onSnapshot((snap) => {
+      roomName = (snap.exists && snap.data().name) ? String(snap.data().name).slice(0, 60) : ROOM_TITLE;
+      renderRoomName();
+    }, () => {});
+  }
+  function roleTagHtml(role){
+    if (role === "owner") return `<span class="role-tag owner">Owner</span>`;
+    if (role === "admin") return `<span class="role-tag admin">Admin</span>`;
+    return "";
+  }
+  function botTagHtml(level){
+    if (level === "small") return `<span class="role-tag smallbot" title="Small bot — can only speak once granted responses">S·Bot</span>`;
+    return `<span class="role-tag bot">Bot</span>`;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* bots                                                              */
+  function rawBotEntries(){
+    if (botsLoaded) return Object.entries(bots);
+    return defaultBotsForRoom().map((b) => { const rest = Object.assign({}, b); delete rest.id; return [b.id, rest]; });
+  }
+  function activeBotList(){ return rawBotEntries().filter(([, b]) => b.active !== false); }
+  function removedBotList(){ return rawBotEntries().filter(([, b]) => b.active === false); }
+  function allBots(){ return activeBotList().map(([id, b]) => Object.assign({ id }, b)); }
+  async function seedBotsIfEmpty(){
+    if (!db) return;
+    try {
+      const snap = await db.collection(roomPath("bots")).limit(1).get();
+      if (!snap.empty) return; // already seeded (or someone already added their own)
+      for (const b of defaultBotsForRoom()){
+        const rest = Object.assign({}, b); delete rest.id;
+        await db.collection(roomPath("bots")).doc(b.id).set(Object.assign({ active:true, createdAt: Date.now() }, rest));
+      }
+    } catch (e) { /* best effort — this room's default-bots fallback still renders locally either way */ }
+  }
+  function subscribeBots(){
+    db.collection(roomPath("bots")).onSnapshot((snap) => {
+      const next = {};
+      for (const doc of snap.docs) next[doc.id] = doc.data() || {};
+      bots = next;
+      botsLoaded = true;
+      applyBotCopy();
+      renderBotRail();
+      renderMessages(); // bot data may arrive after messages first rendered — refresh their tags
+    }, () => {});
+  }
+  function pickBotColor(){
+    const used = new Set(Object.values(bots).map(b => b.colorVar));
+    return BOT_COLOR_VARS.find(c => !used.has(c)) || BOT_COLOR_VARS[hashStr(Date.now()+"") % BOT_COLOR_VARS.length];
+  }
+  async function createBot(name, level){
+    if (!db || !hasPerm("manageBots")) return;
+    const clean = name.trim().slice(0, 24);
+    if (!clean) return;
+    const isSmall = level === "small";
+    try {
+      await db.collection(roomPath("bots")).add({
+        name: clean,
+        role: isSmall ? "small bot · needs permission to speak" : "chats in the room",
+        colorVar: pickBotColor(), level: isSmall ? "small" : "full", audience:"humans",
+        persona: isSmall
+          ? "You're a quiet, friendly bot who only speaks up when given the floor — keep replies short and to the point."
+          : "You're a friendly, easygoing voice in the chat — keep replies short and conversational.",
+        tier:"quick", allowed:false, speaksLeft:0, active:true, createdBy: identity.name, createdAt: Date.now(),
+      });
+      toast(isSmall ? `${clean} added — grant it responses from its ⋮ menu before it can speak.` : `${clean} added.`, 4200);
+    } catch (e) { toast("Couldn't add that bot — try again."); }
+  }
+  async function renameBot(id, name){
+    if (!db || !canRenameBots()) return;
+    const clean = name.trim().slice(0, 24);
+    if (!clean) return;
+    try { await db.collection(roomPath("bots")).doc(id).update({ name: clean }); }
+    catch (e) { toast("Couldn't rename that bot."); }
+  }
+  async function setBotActive(id, active){
+    if (!db || !hasPerm("manageBots")) return;
+    try { await db.collection(roomPath("bots")).doc(id).update({ active }); }
+    catch (e) { toast("Couldn't update that bot."); }
+  }
+  async function setBotLevel(id, level){
+    if (!db || !hasPerm("manageBots")) return;
+    try { await db.collection(roomPath("bots")).doc(id).update({ level }); }
+    catch (e) { toast("Couldn't change that bot's level."); }
+  }
+  async function setBotAudience(id, audience){
+    if (!db || myRole() !== "owner") return; // Owner-only — this is what can start an AI-to-AI conversation
+    try { await db.collection(roomPath("bots")).doc(id).update({ audience }); }
+    catch (e) { toast("Couldn't change who that bot talks to."); }
+  }
+  const AUDIENCE_ORDER = ["humans", "bots", "all"];
+  const AUDIENCE_LABEL = { humans:"Humans", bots:"Bots", all:"Everyone" };
+  const AUDIENCE_TIP = {
+    humans: (n) => `${n} only reacts unprompted to humans — an @mention or poke from a bot still always works. Tap to change.`,
+    bots:   (n) => `${n} only reacts unprompted to OTHER BOTS — this is what lets AI answer AI on its own. Tap to change.`,
+    all:    (n) => `${n} reacts unprompted to humans and bots alike. Tap to change.`,
+  };
+  // One tap on the row itself, instead of hunting the ⋮ menu, for the thing
+  // that actually turns unprompted bot↔bot chatter on: every bot message is
+  // already a valid trigger for another bot's "smart"/"always" mode — this
+  // badge is just the fast way to opt a bot into hearing them.
+  function cycleBotAudience(bot){
+    const cur = bot.audience || "humans";
+    const next = AUDIENCE_ORDER[(AUDIENCE_ORDER.indexOf(cur) + 1) % AUDIENCE_ORDER.length];
+    setBotAudience(bot.id, next);
+    toast(`${bot.name} now reacts unprompted to: ${AUDIENCE_LABEL[next]}.`);
+  }
+  async function grantBotSpeaks(id, allowed, addResponses){
+    if (!db || !hasPerm("manageBots")) return;
+    const current = bots[id] || {};
+    const nextLeft = Math.max(0, (current.speaksLeft || 0) + (addResponses || 0));
+    try { await db.collection(roomPath("bots")).doc(id).update({ allowed: !!allowed, speaksLeft: nextLeft }); }
+    catch (e) { toast("Couldn't update that bot's permission."); }
+  }
+  async function decrementBotSpeaks(id){
+    if (!db) return;
+    const current = bots[id];
+    if (!current) return;
+    const nextLeft = Math.max(0, (current.speaksLeft || 0) - 1);
+    try { await db.collection(roomPath("bots")).doc(id).update({ speaksLeft: nextLeft }); }
+    catch (e) { /* best effort */ }
+  }
+  // Convert a live member into a bot, or a bot back into a member — for when
+  // someone was added on the wrong side. Needs both Manage Members and
+  // Manage Bots, since it touches both rosters at once.
+  async function convertMemberToBot(key){
+    if (!db || !hasPerm("manageMembers") || !hasPerm("manageBots")) return;
+    const m = members[key];
+    if (!m) return;
+    if ((m.role || "member") === "owner"){ toast("Can't turn the owner into a bot."); return; }
+    try {
+      await db.collection(roomPath("bots")).doc(key).set({
+        name: m.name || key, role:"chats in the room", colorVar: pickBotColor(), level:"small",
+        persona:"You're a friendly, easygoing voice in the chat — keep replies short and natural.",
+        tier:"quick", allowed:false, speaksLeft:0, active:true, createdBy: identity.name, createdAt: Date.now(),
+      });
+      await db.doc(roomPath("members/" + key)).delete();
+      toast(`${m.name || key} is now a bot — grant it responses from its ⋮ menu.`, 4200);
+    } catch (e) { toast("Couldn't turn that member into a bot."); }
+  }
+  async function convertBotToPerson(id, b){
+    if (!db || !hasPerm("manageBots") || !hasPerm("manageMembers")) return;
+    const key = nameKeyFor(b.name || id);
+    try {
+      const ref = db.doc(roomPath("members/" + key));
+      const snap = await ref.get();
+      if (!snap.exists){
+        await ref.set({
+          name: b.name || id, role:"member", muted:false, invited:true, colorVar: colorVarForName(b.name || id),
+          createdBy: identity.name, createdAt: Date.now(),
+        });
+      }
+      await db.collection(roomPath("bots")).doc(id).delete();
+      toast(`${b.name || id} is now a person — they'll have it once they join with that exact name.`, 4200);
+    } catch (e) { toast("Couldn't turn that bot into a person."); }
+  }
+
+  // Removing someone works the same whether they're online or offline: their
+  // membership record goes away either way. The difference is that an ONLINE
+  // person's tab is still open — so this also drops a "kicks" flag with their
+  // name on it. Every open tab watches its own flag (see subscribeKickFlag)
+  // and, the instant it appears, boots that person straight back to the name
+  // gate with a banner explaining why — a real live kick, not just a record
+  // that quietly stops mattering next time they refresh.
+  async function removeMember(key){
+    if (!db || !hasPerm("manageMembers")) return;
+    try {
+      await db.doc(roomPath("kicks/" + key)).set({ at: Date.now(), by: identity.name });
+      await db.doc(roomPath("members/" + key)).delete();
+    } catch (e) { toast("Couldn't remove that member."); }
+  }
+
+  /* Rail popovers — only one open at a time; a small absolutely-positioned
+     panel anchored under whichever row opened it. Closes on outside click,
+     Escape, or a fresh render. */
+  let openPopover = null; // { key, el }
+  function closePopover(){
+    if (openPopover && openPopover.el && openPopover.el.parentNode) openPopover.el.remove();
+    openPopover = null;
+  }
+  function togglePopover(key, anchorEl, buildFn){
+    if (openPopover && openPopover.key === key){ closePopover(); return; }
+    closePopover();
+    const panel = buildFn();
+    anchorEl.appendChild(panel);
+    openPopover = { key, el: panel };
+  }
+  document.addEventListener("click", (e) => {
+    if (!openPopover) return;
+    if (openPopover.el.contains(e.target)) return;
+    if (e.target.closest && e.target.closest("[data-popover-anchor='" + openPopover.key + "']")) return;
+    closePopover();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePopover(); });
+
+  /* ---------------------------------------------------------------- */
+  /* identity                                                          */
+  let identity = null;
+  try { identity = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch(e){ identity = null; }
+
+  function colorVarForName(name){
+    return HUMAN_COLOR_VARS[hashStr(name.toLowerCase()) % HUMAN_COLOR_VARS.length];
+  }
+
+  const nameInput = $("#nameInput"), avatarPreview = $("#avatarPreview"), gateForm = $("#gateForm");
+  nameInput.addEventListener("input", () => {
+    const n = nameInput.value.trim();
+    avatarPreview.textContent = n ? initials(n) : "?";
+    avatarPreview.style.background = n ? `var(${colorVarForName(n)})` : cssVar("--muted");
+  });
+  gateForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const n = nameInput.value.trim();
+    if (!n) return;
+    identity = { name:n, colorVar: colorVarForName(n) };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(identity));
+    enterApp();
+  });
+  $("#changeNameBtn").addEventListener("click", () => {
+    $("#gate").classList.remove("hidden");
+    nameInput.value = identity ? identity.name : "";
+    nameInput.dispatchEvent(new Event("input"));
+    nameInput.focus();
+  });
+  // Switching chats needs every live subscription and all in-memory state
+  // torn down cleanly — a full reload does exactly that for free, and lands
+  // back on the room-pick screen since ROOM_ID only lives in memory.
+  $("#switchChatBtn").addEventListener("click", () => location.reload());
+
+  /* ---------------------------------------------------------------- */
+  /* room pick — shown before anything else; picking one sets ROOM_ID  */
+  /* and only then do we fall through to the existing name-gate logic. */
+  function renderRoomChoices(){
+    const list = $("#roomChoiceList");
+    list.innerHTML = "";
+    for (const r of ROOMS){
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "room-choice-btn";
+      btn.innerHTML = `<span><span class="room-choice-name">${r.label}</span><span class="room-choice-sub">${r.sub}</span></span><span class="room-choice-arrow" aria-hidden="true">→</span>`;
+      btn.addEventListener("click", () => chooseRoom(r.id));
+      list.appendChild(btn);
+    }
+  }
+  function chooseRoom(id){
+    ROOM_ID = id;
+    $("#roomGate").classList.add("hidden");
+    const label = (ROOMS.find(r => r.id === id) || {}).label || "Chat";
+    $("#roomSub").textContent = `persistent · synced live for everyone here · ${label}`;
+    if (identity && identity.name){
+      $("#gate").classList.add("hidden");
+      enterApp();
+    } else {
+      $("#gate").classList.remove("hidden");
+      nameInput.focus();
+    }
+  }
+  renderRoomChoices();
+
+  /* ---------------------------------------------------------------- */
+  /* state                                                             */
+  // Declared before enterApp can possibly run (from chooseRoom above, once
+  // a room is picked) — enterApp reads these before its first `await`, so
+  // they must exist before that call, not after it.
+  let db = null, sample = null, room = null;
+
+  // ---- self-hosted replacements for Claude's sample()/claim.acquire() ----
+  async function groqSample(prompt, opts){
+    const res = await fetch("/api/sample", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, modelTier: (opts && opts.modelTier) || "quick" }),
+    });
+    if (!res.ok){
+      const err = new Error("sample request failed");
+      err.code = res.status === 429 ? "rate_limited" : "error";
+      throw err;
+    }
+    const data = await res.json();
+    return { text: data.text || "", truncated: !!data.truncated };
+  }
+  // Firestore has no built-in "lease a lock" primitive like Claude's db
+  // capability did, so this reimplements claimRef.acquire() as a small
+  // transaction: only succeeds if nobody else holds an unexpired claim.
+  async function acquireClaim(ref, opts){
+    const ttlMs = (opts && opts.ttlMs) || 60000;
+    const holder = opts && opts.holder;
+    try {
+      await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const now = Date.now();
+        const data = snap.exists ? snap.data() : null;
+        const stillHeld = data && data.holder && data.expiresAt && data.expiresAt > now && data.holder !== holder;
+        if (stillHeld) throw new Error("claim_held");
+        tx.set(ref, { holder, expiresAt: now + ttlMs });
+      });
+      return { acquired: true };
+    } catch (e) {
+      return { acquired: false };
+    }
+  }
+  let messages = [];
+  let initialLoadDone = false;
+  let nearBottom = true;
+  let peers = [];
+
+  async function enterApp(){
+    $("#app").classList.add("ready");
+    $("#gate").classList.add("hidden");
+    $("#whoamiText").innerHTML = "";
+    const dot = document.createElement("span");
+    dot.style.cssText = `display:inline-block;width:8px;height:8px;border-radius:50%;background:var(${identity.colorVar});margin-right:5px;vertical-align:middle;`;
+    $("#whoamiText").appendChild(dot);
+    $("#whoamiText").appendChild(document.createTextNode(identity.name));
+
+    renderBotRail();
+    renderHumanRail();
+
+    // Self-hosted build: Firestore stands in for Claude's "db" capability
+    // (same collection/doc/onSnapshot/where/limit shapes), and /api/sample
+    // (a small serverless function, see api/sample.js) stands in for
+    // Claude's "sample" capability. There's no equivalent for the "room"
+    // capability outside Claude, so it stays null — the app already has a
+    // clean fallback for that (a "solo" badge, no typing/presence dots).
+    if (typeof firebase === "undefined" || !firebase.apps || !firebase.apps.length){
+      showBanner("Firebase didn't load, so messages won't be saved right now. Check the setup and reload the page.");
+      return;
+    }
+
+    db = firebase.firestore();
+    sample = groqSample;
+    room = null;
+
+    if (!db){
+      showBanner("Live sync isn't available in this view, so messages won't be shared or saved. Open this page from your Claude artifacts to chat for real.");
+    } else {
+      subscribeMessages();
+      subscribeBotModes();
+      await seedBotsIfEmpty();
+      subscribeBots();
+      subscribeMembers();
+      subscribeRoles();
+      subscribeRoomSettings();
+      await bootstrapMembership();
+      await clearMyKickFlag();
+      subscribeKickFlag();
+    }
+    if (!sample){
+      toast("AI replies aren't available in this view — the bots will stay quiet here.", 4200);
+    }
+    if (room){
+      initRoom();
+    } else {
+      setLive(false, "solo");
+    }
+  }
+
+  function showBanner(text){
+    const b = $("#banner"); b.textContent = text; b.classList.add("show");
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* room title                                                        */
+  function renderRoomName(){
+    const h1 = $("#roomTitle");
+    const canRename = !!db && hasPerm("manageRoom");
+    h1.textContent = roomName || ROOM_TITLE;
+    h1.classList.toggle("editable", canRename);
+    h1.title = canRename ? "Click to rename the channel" : "";
+    document.title = roomName || ROOM_TITLE;
+  }
+  $("#roomTitle").addEventListener("click", () => {
+    if (!db || !hasPerm("manageRoom")) return;
+    startRenamingRoom();
+  });
+  function startRenamingRoom(){
+    const h1 = $("#roomTitle");
+    const current = roomName || ROOM_TITLE;
+    h1.textContent = "";
+    const input = document.createElement("input");
+    input.type = "text"; input.maxLength = 60; input.value = current;
+    h1.appendChild(input);
+    input.focus(); input.select();
+    let done = false;
+    const finish = async (save) => {
+      if (done) return; done = true;
+      const val = input.value.trim();
+      renderRoomName();
+      if (save && val && val !== current){
+        try { await db.doc(roomPath("settings/room")).set({ name: val }); }
+        catch (e) { toast("Couldn't rename the channel."); }
+      }
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter"){ e.preventDefault(); finish(true); }
+      if (e.key === "Escape"){ e.preventDefault(); finish(false); }
+    });
+    input.addEventListener("blur", () => finish(true));
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* roles modal                                                       */
+  let modalPermTab = "admin";
+  let clearArmed = false;
+
+  function openRolesModal(){ $("#rolesModal").classList.add("show"); renderModalIfOpen(); }
+  function closeRolesModal(){ $("#rolesModal").classList.remove("show"); }
+  $("#rolesBtn").addEventListener("click", openRolesModal);
+  $("#modalCloseBtn").addEventListener("click", closeRolesModal);
+  $("#rolesModal").addEventListener("click", (e) => { if (e.target.id === "rolesModal") closeRolesModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeRolesModal(); });
+  $("#permTabs").addEventListener("click", (e) => {
+    const btn = e.target.closest(".perm-tab");
+    if (!btn) return;
+    modalPermTab = btn.dataset.role;
+    renderModalIfOpen();
+  });
+
+  function renderModalIfOpen(){
+    if (!$("#rolesModal").classList.contains("show")) return;
+    renderMemberList();
+    renderPermTabs();
+    renderPermList();
+    renderClearChatBtn();
+  }
+
+  function renderMemberList(){
+    const box = $("#memberList");
+    box.innerHTML = "";
+    const entries = Object.entries(members).sort((a, b) =>
+      (rankOf(b[1].role || "member") - rankOf(a[1].role || "member")) ||
+      String(a[1].name || "").localeCompare(String(b[1].name || "")));
+    if (!entries.length){ box.innerHTML = `<div class="rail-empty">No members yet.</div>`; return; }
+    for (const [key, m] of entries){
+      const role = m.role || "member";
+      const isOwnerRow = role === "owner";
+      const canEditRole = !isOwnerRow && hasPerm("manageMembers") && canModerate(key);
+      const canToggleMute = !isOwnerRow && hasPerm("muteMembers") && canModerate(key);
+      const row = document.createElement("div");
+      row.className = "member-row";
+      const nameHtml = `<span>${m.name || key}${key === myNameKey ? " (you)" : ""}</span>${roleTagHtml(role)}`;
+      const roleHtml = isOwnerRow ? "" : (canEditRole
+        ? `<select class="role-select"><option value="member"${role !== "admin" ? " selected" : ""}>Member</option><option value="admin"${role === "admin" ? " selected" : ""}>Admin</option></select>`
+        : `<span style="font-size:11px;color:var(--muted);flex:none;">${role === "admin" ? "Admin" : "Member"}</span>`);
+      const muteHtml = isOwnerRow ? "" : `<label class="mute-toggle"><input type="checkbox"${m.muted ? " checked" : ""}${canToggleMute ? "" : " disabled"}> Mute</label>`;
+      row.innerHTML = `<span class="name">${nameHtml}</span>${roleHtml}${muteHtml}`;
+      if (canEditRole){
+        row.querySelector(".role-select").addEventListener("change", (e) => {
+          db.doc(roomPath("members/" + key)).update({ role: e.target.value }).catch(() => toast("Couldn't change that member's role."));
+        });
+      }
+      if (canToggleMute){
+        row.querySelector(".mute-toggle input").addEventListener("change", (e) => {
+          db.doc(roomPath("members/" + key)).update({ muted: e.target.checked }).catch(() => toast("Couldn't update that member."));
+        });
+      }
+      box.appendChild(row);
+    }
+  }
+
+  function renderPermTabs(){
+    $("#permTabs").querySelectorAll(".perm-tab").forEach((t) => t.classList.toggle("active", t.dataset.role === modalPermTab));
+  }
+
+  function renderPermList(){
+    const box = $("#permList");
+    box.innerHTML = "";
+    const canEdit = hasPerm("manageRoles");
+    $("#permReadonlyNote").hidden = canEdit;
+    const current = rolePerms[modalPermTab] || DEFAULT_ROLE_PERMS[modalPermTab];
+    for (const p of PERMISSIONS){
+      const row = document.createElement("div");
+      row.className = "perm-row";
+      row.innerHTML = `<input type="checkbox" id="perm-${p.key}"${current[p.key] ? " checked" : ""}${canEdit ? "" : " disabled"}>
+        <div class="ptext"><div class="plabel">${p.label}</div><div class="pdesc">${p.desc}</div></div>`;
+      if (canEdit){
+        row.querySelector("input").addEventListener("change", (e) => {
+          const next = Object.assign({}, current, { [p.key]: e.target.checked });
+          db.collection(roomPath("roles")).doc(modalPermTab).set({ permissions: next }).catch(() => toast("Couldn't save that permission."));
+        });
+      }
+      box.appendChild(row);
+    }
+  }
+
+  function renderClearChatBtn(){
+    const btn = $("#clearChatBtn");
+    btn.disabled = !hasPerm("clearChat");
+    btn.textContent = clearArmed ? "Click again to confirm" : "Clear all messages";
+  }
+  async function clearAllMessages(){
+    for (let i = 0; i < 20; i++){
+      const snap = await db.collection(roomPath("messages")).limit(500).get();
+      if (snap.empty) return;
+      await Promise.all(snap.docs.map((d) => db.collection(roomPath("messages")).doc(d.id).delete()));
+      if (snap.docs.length < 500) return;
+    }
+  }
+  $("#clearChatBtn").addEventListener("click", async () => {
+    if (!hasPerm("clearChat")) return;
+    if (!clearArmed){
+      clearArmed = true; renderClearChatBtn();
+      setTimeout(() => { clearArmed = false; renderClearChatBtn(); }, 3500);
+      return;
+    }
+    clearArmed = false; renderClearChatBtn();
+    try { await clearAllMessages(); toast("Chat cleared."); }
+    catch (e) { toast("Couldn't clear the chat."); }
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* rail rendering                                                    */
+  function renderBotRail(){
+    const list = $("#botList");
+    const popoverIsMine = openPopover && list.contains(openPopover.el);
+    list.innerHTML = "";
+    if (popoverIsMine) openPopover = null; // its DOM just got wiped above
+    const canManage = hasPerm("manageBots");
+    const active = activeBotList();
+    const removed = canManage ? removedBotList() : [];
+
+    if (!active.length){
+      const empty = document.createElement("div");
+      empty.className = "rail-empty";
+      empty.textContent = "No bots yet.";
+      list.appendChild(empty);
+    }
+    for (const [id, b] of active) list.appendChild(buildBotRow(id, b));
+
+    if (canManage){
+      if (removed.length){
+        const box = document.createElement("div");
+        box.className = "removed-bots";
+        const h = document.createElement("h3"); h.textContent = "Removed";
+        box.appendChild(h);
+        for (const [id, b] of removed){
+          const row = document.createElement("div");
+          row.className = "removed-row";
+          row.innerHTML = `<span class="name">${b.name}</span><button type="button">Add</button>`;
+          row.querySelector("button").addEventListener("click", () => setBotActive(id, true));
+          box.appendChild(row);
+        }
+        list.appendChild(box);
+      }
+      const addBtn = document.createElement("button");
+      addBtn.type = "button"; addBtn.className = "rail-add-btn"; addBtn.textContent = "+ Add bot";
+      addBtn.setAttribute("data-popover-anchor", "add-bot");
+      addBtn.addEventListener("click", () => togglePopover("add-bot", list, buildAddBotForm));
+      list.appendChild(addBtn);
+    }
+  }
+
+  function buildBotRow(id, b){
+    const bot = Object.assign({ id }, b); // modeOf() etc. need the id, which raw `b` doesn't carry
+    const canManage = hasPerm("manageBots");
+    const isSmall = b.level === "small";
+    const mode = isSmall ? null : modeOf(bot);
+    const muted = !isSmall && mode === "mute";
+    const canSpeak = isSmall ? (!!b.allowed && (b.speaksLeft || 0) > 0) : !muted;
+    const row = document.createElement("div");
+    row.className = "rail-item";
+    row.id = "bot-row-" + id;
+    const menuBtn = canManage
+      ? `<button type="button" class="bot-menu-btn" data-popover-anchor="bot-menu-${id}" title="More" aria-label="More options for ${b.name}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+        </button>`
+      : "";
+    const trailing = isSmall
+      ? `<span class="quota-pill ${canSpeak ? "granted" : "blocked"}">${canSpeak ? `${b.speaksLeft} left` : (b.allowed ? "0 left" : "off")}</span>
+         <button type="button" class="poke-btn" title="Ask ${b.name} to say something" aria-label="Poke ${b.name}" ${canSpeak ? "" : "disabled"}>
+           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14H11L10 22L21 9H13L13 2Z" fill="currentColor"/></svg>
+         </button>`
+      : `<button type="button" class="mode-badge" data-mode="${mode}" title="${MODE_INFO[mode].tip(b.name)}">${MODE_INFO[mode].label}</button>
+         ${myRole() === "owner" ? (() => { const aud = b.audience || "humans"; return `<button type="button" class="mode-badge audience-badge" data-aud="${aud}" title="${AUDIENCE_TIP[aud](b.name)}">${AUDIENCE_LABEL[aud]}</button>`; })() : ""}
+         <button type="button" class="poke-btn" title="Ask ${b.name} to say something" aria-label="Poke ${b.name}" ${muted ? "disabled" : ""}>
+           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14H11L10 22L21 9H13L13 2Z" fill="currentColor"/></svg>
+         </button>`;
+    row.innerHTML = `${menuBtn}
+      <div class="avatar bot" style="background:var(${b.colorVar});${(isSmall ? !canSpeak : muted) ? "opacity:.5;" : ""}">${initials(b.name)}<span class="presence-dot"></span></div>
+      <div class="meta"><div class="name"><span>${b.name}</span>${botTagHtml(b.level)}</div><div class="role">${b.role}</div></div>
+      ${trailing}`;
+    if (canManage){
+      row.querySelector(".bot-menu-btn").addEventListener("click", () => togglePopover("bot-menu-" + id, row, () => buildBotMenuPanel(id, b)));
+    }
+    const pokeEl = row.querySelector(".poke-btn");
+    if (pokeEl) pokeEl.addEventListener("click", () => pokeBot(bot));
+    const modeEl = row.querySelector(".mode-badge:not(.audience-badge)");
+    if (modeEl) modeEl.addEventListener("click", () => cycleBotMode(bot));
+    const audEl = row.querySelector(".audience-badge");
+    if (audEl) audEl.addEventListener("click", () => cycleBotAudience(bot));
+    return row;
+  }
+
+  function buildBotMenuPanel(id, b){
+    const panel = document.createElement("div");
+    panel.className = "rail-popover-panel";
+    const items = [];
+    if (canRenameBots()) items.push({ label:"Rename", action:() => { closePopover(); togglePopover("bot-rename-" + id, $("#bot-row-" + id), () => buildRenameForm(id, b)); } });
+    items.push({ label: b.level === "small" ? "Change level → Full bot" : "Change level → Small bot",
+      action:() => { closePopover(); setBotLevel(id, b.level === "small" ? "full" : "small"); } });
+    if (b.level === "small"){
+      items.push({ label:"Speaks (set responses)", action:() => { closePopover(); togglePopover("speaks-" + id, $("#bot-row-" + id), () => buildSpeaksForm(id, b)); } });
+    }
+    if (myRole() === "owner"){
+      const aud = b.audience || "humans";
+      const AUD_ORDER = ["humans", "bots", "all"];
+      const AUD_LABEL = { humans:"Humans only", bots:"Bots only (AI ↔ AI)", all:"Everyone" };
+      const next = AUD_ORDER[(AUD_ORDER.indexOf(aud) + 1) % AUD_ORDER.length];
+      items.push({ label:`Talks to: ${AUD_LABEL[aud]} (tap to change)`, action:() => { closePopover(); setBotAudience(id, next); } });
+    }
+    if (hasPerm("manageMembers")) items.push({ label:"Make person", action:() => { closePopover(); convertBotToPerson(id, b); } });
+    items.push({ label:"Remove from chat", danger:true, action:() => { closePopover(); setBotActive(id, false); } });
+    for (const it of items){
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "rail-popover-item" + (it.danger ? " danger" : "");
+      btn.textContent = it.label;
+      btn.addEventListener("click", (e) => { e.stopPropagation(); it.action(); });
+      panel.appendChild(btn);
+    }
+    return panel;
+  }
+
+  function buildRenameForm(id, b){
+    const panel = document.createElement("div");
+    panel.className = "rail-inline-form";
+    panel.innerHTML = `<label>Rename ${b.name}</label><input type="text" maxlength="24" value="${b.name.replace(/"/g,'&quot;')}">
+      <div class="form-actions"><button type="button" class="cancel">Cancel</button><button type="button" class="primary save">Save</button></div>`;
+    const input = panel.querySelector("input");
+    panel.querySelector(".cancel").addEventListener("click", closePopover);
+    panel.querySelector(".save").addEventListener("click", () => { renameBot(id, input.value); closePopover(); });
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter"){ renameBot(id, input.value); closePopover(); } });
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+    return panel;
+  }
+
+  function buildSpeaksForm(id, b){
+    const panel = document.createElement("div");
+    panel.className = "rail-inline-form";
+    panel.innerHTML = `
+      <label>${b.name}'s permission</label>
+      <div class="row-check"><input type="checkbox" id="speaksAllowed" ${b.allowed ? "checked" : ""}> <span>Allowed to speak</span></div>
+      <label>Add responses (currently ${b.speaksLeft || 0} left)</label>
+      <input type="number" id="speaksAdd" min="0" max="200" value="5">
+      <div class="form-actions"><button type="button" class="cancel">Cancel</button><button type="button" class="primary save">Grant</button></div>`;
+    panel.querySelector(".cancel").addEventListener("click", closePopover);
+    panel.querySelector(".save").addEventListener("click", () => {
+      const allowed = panel.querySelector("#speaksAllowed").checked;
+      const add = parseInt(panel.querySelector("#speaksAdd").value, 10) || 0;
+      grantBotSpeaks(id, allowed, add);
+      closePopover();
+    });
+    return panel;
+  }
+
+  function buildAddBotForm(){
+    const panel = document.createElement("div");
+    panel.className = "rail-inline-form";
+    panel.innerHTML = `<label>New bot's name</label><input type="text" maxlength="24" placeholder="e.g. Echo">
+      <label>Level</label>
+      <select id="newBotLevel">
+        <option value="small" selected>Small — needs permission to speak</option>
+        <option value="full">Full — always speaks per its mode</option>
+      </select>
+      <div class="form-actions"><button type="button" class="cancel">Cancel</button><button type="button" class="primary create">Add</button></div>`;
+    const input = panel.querySelector("input");
+    const levelSel = panel.querySelector("#newBotLevel");
+    panel.querySelector(".cancel").addEventListener("click", closePopover);
+    const submit = () => { if (input.value.trim()){ createBot(input.value, levelSel.value); closePopover(); } };
+    panel.querySelector(".create").addEventListener("click", submit);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    setTimeout(() => input.focus(), 0);
+    return panel;
+  }
+
+  function renderHumanRail(){
+    const list = $("#humanList");
+    const popoverIsMine = openPopover && list.contains(openPopover.el);
+    list.innerHTML = "";
+    if (popoverIsMine) openPopover = null; // its DOM just got wiped above
+
+    const viewers = room ? peers.filter(p => p.kind === "viewer") : [];
+    const rows = [];
+    const onlineKeys = new Set();
+
+    if (viewers.length){
+      for (const p of viewers){
+        const name = (p.presence && p.presence.name) ? String(p.presence.name).slice(0,24) : "Someone";
+        const key = nameKeyFor(name);
+        onlineKeys.add(key);
+        const cv = (p.presence && p.presence.colorVar && HUMAN_COLOR_VARS.includes(p.presence.colorVar)) ? p.presence.colorVar : "--muted";
+        const m = members[key];
+        rows.push({ key, name, colorVar: cv, role: (m && m.role) || "member", muted: !!(m && m.muted),
+          isMe: p.isMe, online:true, statusText: (p.presence && p.presence.typing) ? "typing…" : "here now" });
+      }
+    } else {
+      const key = myNameKey || nameKeyFor(identity.name);
+      onlineKeys.add(key);
+      rows.push({ key, name: identity.name, colorVar: identity.colorVar, role: myRole(), muted: isMuted(),
+        isMe: true, online:true, statusText: "here now" });
+    }
+
+    const offline = Object.entries(members).filter(([key]) => !onlineKeys.has(key));
+    offline.sort((a, b) => (rankOf(b[1].role || "member") - rankOf(a[1].role || "member")) ||
+      String(a[1].name || a[0]).localeCompare(String(b[1].name || b[0])));
+    for (const [key, m] of offline){
+      rows.push({ key, name: m.name || key, colorVar: m.colorVar || "--muted", role: m.role || "member", muted: !!m.muted,
+        isMe:false, online:false, statusText: m.invited ? "invited — hasn't joined yet" : "offline" });
+    }
+
+    for (const r of rows) list.appendChild(buildHumanRow(r));
+
+    if (db && hasPerm("manageMembers")){
+      const addBtn = document.createElement("button");
+      addBtn.type = "button"; addBtn.className = "rail-add-btn"; addBtn.textContent = "+ Add someone";
+      addBtn.setAttribute("data-popover-anchor", "add-person");
+      addBtn.addEventListener("click", () => togglePopover("add-person", list, buildAddPersonForm));
+      list.appendChild(addBtn);
+    }
+  }
+
+  function buildHumanRow(r){
+    const canManage = !r.isMe && !!db && (hasPerm("manageMembers") || hasPerm("muteMembers")) && canModerate(r.key);
+    const row = document.createElement("div");
+    row.className = "rail-item";
+    row.id = "human-row-" + r.key;
+    const menuBtn = canManage
+      ? `<button type="button" class="bot-menu-btn" data-popover-anchor="human-menu-${r.key}" title="More" aria-label="More options for ${r.name}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+        </button>`
+      : "";
+    row.innerHTML = `${menuBtn}
+      <div class="avatar" style="background:var(${r.colorVar});${r.online ? "" : "opacity:.5;"}">${initials(r.name)}<span class="presence-dot${r.online ? " on" : ""}"></span></div>
+      <div class="meta"><div class="name"><span>${r.name}${r.isMe ? " (you)" : ""}</span>${roleTagHtml(r.role)}${r.muted ? `<span class="role-tag" style="color:var(--danger)">Muted</span>` : ""}</div><div class="role">${r.statusText}</div></div>`;
+    if (canManage){
+      row.querySelector(".bot-menu-btn").addEventListener("click", () => togglePopover("human-menu-" + r.key, row, () => buildHumanMenuPanel(r.key)));
+    }
+    return row;
+  }
+
+  function buildHumanMenuPanel(key){
+    const m = members[key] || {};
+    const role = m.role || "member";
+    const panel = document.createElement("div");
+    panel.className = "rail-popover-panel";
+    const items = [];
+    if (hasPerm("manageMembers")){
+      const nextRole = role === "admin" ? "member" : "admin";
+      items.push({ label: nextRole === "admin" ? "Change level → Admin" : "Change level → Member",
+        action:() => { closePopover(); db.doc(roomPath("members/" + key)).update({ role: nextRole }).catch(() => toast("Couldn't change that member's role.")); } });
+    }
+    if (hasPerm("muteMembers")){
+      const willMute = !m.muted;
+      items.push({ label: willMute ? "Mute" : "Unmute",
+        action:() => { closePopover(); db.doc(roomPath("members/" + key)).update({ muted: willMute }).catch(() => toast("Couldn't update that member.")); } });
+    }
+    if (hasPerm("manageMembers") && hasPerm("manageBots")){
+      items.push({ label:"Make bot", action:() => { closePopover(); convertMemberToBot(key); } });
+    }
+    if (hasPerm("manageMembers")){
+      items.push({ label:"Remove from channel", danger:true,
+        action:() => { closePopover(); removeMember(key); } });
+    }
+    for (const it of items){
+      const btn = document.createElement("button");
+      btn.type = "button"; btn.className = "rail-popover-item" + (it.danger ? " danger" : "");
+      btn.textContent = it.label;
+      btn.addEventListener("click", (e) => { e.stopPropagation(); it.action(); });
+      panel.appendChild(btn);
+    }
+    return panel;
+  }
+
+  function buildAddPersonForm(){
+    const panel = document.createElement("div");
+    panel.className = "rail-inline-form";
+    panel.innerHTML = `<label>Name to add</label><input type="text" maxlength="24" placeholder="e.g. Sam">
+      <label>Starting level</label>
+      <select id="newPersonRole"><option value="member" selected>Member</option><option value="admin">Admin</option></select>
+      <div class="form-actions"><button type="button" class="cancel">Cancel</button><button type="button" class="primary create">Add</button></div>`;
+    const input = panel.querySelector("input");
+    const roleSel = panel.querySelector("#newPersonRole");
+    panel.querySelector(".cancel").addEventListener("click", closePopover);
+    const submit = () => { if (input.value.trim()){ addPerson(input.value, roleSel.value); closePopover(); } };
+    panel.querySelector(".create").addEventListener("click", submit);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+    setTimeout(() => input.focus(), 0);
+    return panel;
+  }
+
+  async function addPerson(name, role){
+    if (!db || !hasPerm("manageMembers")) return;
+    const clean = name.trim().slice(0, 24);
+    if (!clean) return;
+    const key = nameKeyFor(clean);
+    if (key === myNameKey){ toast("That's you."); return; }
+    const cleanRole = role === "admin" ? "admin" : "member";
+    const ref = db.doc(roomPath("members/" + key));
+    try {
+      const snap = await ref.get();
+      if (snap.exists){
+        if ((snap.data().role || "member") === "owner"){ toast("Can't change the owner's level."); return; }
+        await ref.update({ role: cleanRole });
+        toast(`${clean} is already a member — updated their level.`);
+      } else {
+        await ref.set({ name: clean, role: cleanRole, muted:false, invited:true, colorVar: colorVarForName(clean), createdBy: identity.name, createdAt: Date.now() });
+        toast(`${clean} added — they'll have this level once they join with that exact name.`, 4200);
+      }
+    } catch (e) { toast("Couldn't add that person — try again."); }
+  }
+
+  function setBotThinking(botId, on){
+    const dot = document.querySelector("#bot-row-" + botId + " .presence-dot");
+    if (dot) dot.classList.toggle("thinking", on);
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* room presence                                                     */
+  function initRoom(){
+    room.presence({ name: identity.name, colorVar: identity.colorVar, typing:false, activeBotId:null });
+    room.onConnection((c) => setLive(c, c ? "live" : "reconnecting"));
+    room.onPeers((change) => {
+      peers = change.peers.slice();
+      renderHumanRail();
+      updateTypingLine();
+      updateThinkingDots();
+    });
+  }
+  function setLive(on, label){
+    const badge = $("#liveBadge");
+    badge.classList.toggle("on", !!on);
+    $("#liveBadgeText").textContent = label || (on ? "live" : "offline");
+  }
+  function updateTypingLine(){
+    const el = $("#typing-line");
+    if (!room){ el.textContent = ""; return; }
+    const typers = peers.filter(p => !p.isMe && p.kind === "viewer" && p.presence && p.presence.typing)
+      .map(p => (p.presence.name || "Someone"));
+    el.textContent = typers.length ? `${typers.join(", ")} ${typers.length>1?"are":"is"} typing…` : "";
+  }
+  function updateThinkingDots(){
+    if (!room) return;
+    const activeIds = new Set(peers.filter(p => p.presence && p.presence.activeBotId).map(p => p.presence.activeBotId));
+    for (const bot of allBots()) setBotThinking(bot.id, activeIds.has(bot.id));
+  }
+
+  let typingTimer = null;
+  $("#msgInput").addEventListener("input", () => {
+    autoGrow();
+    handleMentionAutocomplete();
+    if (!room) return;
+    room.presence({ typing:true });
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(() => room.presence({ typing:false }), 1800);
+  });
+  $("#msgInput").addEventListener("blur", () => { if (room) room.presence({ typing:false }); });
+
+  function autoGrow(){
+    const ta = $("#msgInput"); ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 132) + "px";
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* mention autocomplete                                              */
+  function handleMentionAutocomplete(){
+    const ta = $("#msgInput"); const pop = $("#mention-pop");
+    const upto = ta.value.slice(0, ta.selectionStart);
+    const m = upto.match(/(?:^|\s)@([a-zA-Z]{0,20})$/);
+    if (!m){ pop.classList.remove("show"); return; }
+    const q = m[1].toLowerCase();
+    const opts = allBots().filter(b => b.name.toLowerCase().startsWith(q));
+    if (!opts.length){ pop.classList.remove("show"); return; }
+    pop.innerHTML = "";
+    opts.forEach((bot, i) => {
+      const row = document.createElement("div");
+      row.className = "mention-opt" + (i===0 ? " active" : "");
+      row.innerHTML = `<span class="avatar bot" style="width:20px;height:20px;font-size:9px;background:var(${bot.colorVar})">${initials(bot.name)}</span> <b>${bot.name}</b> <span style="color:var(--muted);font-size:11.5px">${bot.role}</span>`;
+      row.addEventListener("mousedown", (e) => { e.preventDefault(); insertMention(bot); });
+      pop.appendChild(row);
+    });
+    pop.classList.add("show");
+  }
+  function insertMention(bot){
+    const ta = $("#msgInput");
+    const upto = ta.value.slice(0, ta.selectionStart);
+    const rest = ta.value.slice(ta.selectionStart);
+    const replaced = upto.replace(/(?:^|\s)@([a-zA-Z]{0,20})$/, (m0) => (m0.startsWith(" ") ? " " : "") + "@" + bot.name + " ");
+    ta.value = replaced + rest;
+    $("#mention-pop").classList.remove("show");
+    ta.focus();
+  }
+  $("#msgInput").addEventListener("keydown", (e) => {
+    const pop = $("#mention-pop");
+    if (pop.classList.contains("show")){
+      const opts = [...pop.querySelectorAll(".mention-opt")];
+      let idx = opts.findIndex(o => o.classList.contains("active"));
+      if (e.key === "ArrowDown"){ e.preventDefault(); opts[idx]?.classList.remove("active"); idx=(idx+1)%opts.length; opts[idx].classList.add("active"); return; }
+      if (e.key === "ArrowUp"){ e.preventDefault(); opts[idx]?.classList.remove("active"); idx=(idx-1+opts.length)%opts.length; opts[idx].classList.add("active"); return; }
+      if (e.key === "Enter" || e.key === "Tab"){ e.preventDefault(); opts[idx]?.dispatchEvent(new Event("mousedown")); return; }
+      if (e.key === "Escape"){ pop.classList.remove("show"); return; }
+    }
+    if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* sending + subscribing                                             */
+  $("#sendBtn").addEventListener("click", sendMessage);
+
+  async function sendMessage(){
+    const ta = $("#msgInput");
+    const text = ta.value.trim();
+    if (!text) return;
+    if (!db){ toast("Not connected — this message won't be saved."); return; }
+    if (isMuted()){ toast("You've been muted in this channel."); return; }
+    ta.value = ""; autoGrow(); $("#mention-pop").classList.remove("show");
+    if (room) room.presence({ typing:false });
+    $("#sendBtn").disabled = true;
+    try {
+      const mentioned = findMentionedBots(text);
+      const payload = { text, senderName: identity.name, senderType:"human", colorVar: identity.colorVar, ts: Date.now() };
+      // Naming two or more bots in the same message is a huddle: it's a cue
+      // to have exactly those bots talk to each other about it — "@Percy
+      // @Toma, hash this out" — bypassing their individual audience settings
+      // for as long as the two of them keep replying to each other.
+      if (mentioned.length >= 2) payload.huddle = mentioned.map(b => b.id);
+      const ref = await db.collection(roomPath("messages")).add(payload);
+      for (const bot of mentioned) maybeTriggerBot(ref.id, bot);
+    } catch (e) {
+      toast("Couldn't send that message — try again.");
+      ta.value = text; autoGrow();
+    } finally {
+      $("#sendBtn").disabled = false;
+    }
+  }
+
+  function subscribeMessages(){
+    // A message id only ever gets evaluated for auto-triggering once per
+    // session, however many times a snapshot happens to redeliver it (a
+    // reconnect, a listener re-fire) — without this, a redelivered "added"
+    // event would re-run the mention/huddle/audience checks and could race
+    // its own earlier attempt into writing a second reply before either one's
+    // dedup check had a chance to see the other's write land.
+    const seenTriggerIds = new Set();
+    db.collection(roomPath("messages")).orderBy("ts","desc").limit(200).onSnapshot((snap) => {
+      const docs = snap.docs.slice().reverse().map(d => Object.assign({ id:d.id }, d.data()));
+      messages = docs;
+      renderMessages();
+
+      if (!initialLoadDone){ initialLoadDone = true; return; }
+      for (const change of snap.docChanges()){
+        if (change.type !== "added") continue;
+        if (seenTriggerIds.has(change.doc.id)) continue;
+        seenTriggerIds.add(change.doc.id);
+        const m = change.doc.data();
+        const fromBot = m.senderType === "bot";
+        // Safety cap — an AI-only exchange can answer itself for a while, but
+        // never forever. Once a reply chain gets this deep, it stops feeding
+        // itself further (it just stays a normal, readable message).
+        if (fromBot && (m.chainDepth || 0) >= MAX_BOT_CHAIN_DEPTH) continue;
+        // Computed straight from this message's own stored fields (not looked
+        // up later from the local `messages` cache, which is a bounded, most-
+        // recent window) so depth-capping stays correct however long the
+        // channel's history gets.
+        const nextChainDepth = fromBot ? (m.chainDepth || 1) + 1 : 1;
+        if (m.senderType === "human" || fromBot){
+          const text = m.text || "";
+          const mentioned = findMentionedBots(text);
+          const mentionedIds = new Set(mentioned.map(b => b.id));
+          for (const bot of mentioned) maybeTriggerBot(change.doc.id, bot, { chainDepth: nextChainDepth, huddle: m.huddle || null }); // @mention always triggers, whoever sent it
+
+          // A huddle message names its own guest list — inherited onto every
+          // reply inside it (see maybeTriggerBot). While it's active, ONLY
+          // those named bots keep going, exclusively with each other: their
+          // individual audience setting and an "off" mode are both beside
+          // the point (being named together is the authorization), but an
+          // explicit "mute" still wins, and the shared cooldown/chain-depth
+          // caps below still apply — a huddle is bounded, not a loophole.
+          const huddle = Array.isArray(m.huddle) ? m.huddle.filter(id => id !== m.botId) : null;
+          if (huddle && huddle.length){
+            for (const id of huddle){
+              if (mentionedIds.has(id)) continue; // already handled above
+              const bot = botById(id);
+              if (!bot) continue;
+              if (bot.level !== "small" && modeOf(bot) === "mute") continue; // an explicit mute always wins
+              maybeTriggerBot(change.doc.id, bot, { consider:true, chainDepth: nextChainDepth, huddle: m.huddle || null });
+            }
+            continue; // huddle messages skip the normal audience-based loop below
+          }
+
+          for (const bot of allBots()){
+            if (bot.level === "small") continue; // small bots never chime in unprompted
+            if (mentionedIds.has(bot.id)) continue;
+            if (fromBot && bot.id === m.botId) continue; // never auto-reply to your own message
+            if (!audienceAllows(bot, fromBot)) continue; // who this bot listens to, unprompted
+            const mode = modeOf(bot);
+            if (mode === "off" || mode === "mute") continue;
+            if (mode === "always"){
+              lastAutoChimeAt[bot.id] = Date.now();
+              maybeTriggerBot(change.doc.id, bot, { chainDepth: nextChainDepth }); // no `consider` — always writes a real reply
+            } else { // "smart"
+              if (autoChimeOnCooldown(bot)) continue;
+              lastAutoChimeAt[bot.id] = Date.now();
+              maybeTriggerBot(change.doc.id, bot, { consider:true, chainDepth: nextChainDepth });
+            }
+          }
+        }
+      }
+    }, (err) => {
+      showBanner("Lost the live connection to the channel (" + err.code + "). Reload to reconnect.");
+    });
+  }
+
+  function renderMessages(){
+    const thread = $("#thread");
+    const jumpBtn = $("#jump");
+    const wasNearBottom = nearBottom;
+    thread.querySelectorAll(".msg-row, .day-sep").forEach(n => n.remove());
+    $("#emptyState").style.display = messages.length ? "none" : "block";
+
+    let lastDay = null;
+    for (const m of messages){
+      const dk = dayKey(m.ts || Date.now());
+      if (dk !== lastDay){
+        const sep = document.createElement("div");
+        sep.className = "day-sep";
+        sep.textContent = dayLabel(m.ts || Date.now());
+        thread.insertBefore(sep, jumpBtn);
+        lastDay = dk;
+      }
+      thread.insertBefore(buildMessageRow(m), jumpBtn);
+    }
+
+    if (wasNearBottom) scrollToBottom(); else jumpBtn.classList.add("show");
+
+    if (messages.length){
+      const last = messages[messages.length-1];
+      $("#srAnnounce").textContent = `${last.senderName}: ${last.text}`;
+    }
+  }
+
+  function buildMessageRow(m){
+    const mine = m.senderType === "human" && m.senderName === identity.name;
+    const isBot = m.senderType === "bot";
+    const row = document.createElement("div");
+    row.className = "msg-row" + (mine ? " mine" : "") + (isBot ? " bot" : "");
+
+    const av = document.createElement("div");
+    av.className = "avatar" + (isBot ? " bot" : "");
+    av.style.background = m.colorVar ? `var(${m.colorVar})` : cssVar("--muted");
+    av.textContent = initials(m.senderName || "?");
+    row.appendChild(av);
+
+    const col = document.createElement("div");
+    col.className = "msg-col";
+
+    const meta = document.createElement("div");
+    meta.className = "msg-meta";
+    const who = document.createElement("span"); who.className = "who";
+    who.appendChild(document.createTextNode(mine ? "You" : (m.senderName || "Someone")));
+    if (isBot){
+      const b = botById(m.botId);
+      who.insertAdjacentHTML("beforeend", botTagHtml(b ? b.level : "full"));
+    } else {
+      const mem = members[nameKeyFor(m.senderName || "")];
+      if (mem) who.insertAdjacentHTML("beforeend", roleTagHtml(mem.role));
+    }
+    const stamp = document.createElement("span"); stamp.className = "stamp"; stamp.textContent = fmtTime(m.ts || Date.now());
+    meta.appendChild(who); meta.appendChild(stamp);
+    if (m.text){
+      const copy = document.createElement("button");
+      copy.type = "button"; copy.className = "msg-action-btn copy-btn"; copy.title = "Copy text"; copy.setAttribute("aria-label", "Copy message text");
+      copy.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+      copy.addEventListener("click", async () => {
+        try { await navigator.clipboard.writeText(m.text); toast("Copied."); }
+        catch (e) { toast("Couldn't copy — your browser blocked clipboard access."); }
+      });
+      meta.appendChild(copy);
+    }
+    // Read-aloud uses the browser's own built-in speech voice, not a bot's —
+    // it just says whatever's in the bubble out loud. Not every browser has
+    // one, so the button only shows up where speechSynthesis actually exists.
+    if (m.text && window.speechSynthesis){
+      const speak = document.createElement("button");
+      speak.type = "button"; speak.className = "msg-action-btn speak-btn"; speak.title = "Read aloud"; speak.setAttribute("aria-label", "Read message aloud");
+      speak.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>`;
+      speak.addEventListener("click", () => {
+        const wasSpeaking = speak.classList.contains("speaking");
+        speechSynthesis.cancel(); // only one message reads at a time
+        document.querySelectorAll(".speak-btn.speaking").forEach((b) => b.classList.remove("speaking"));
+        if (wasSpeaking) return; // clicking an already-speaking button just stops it
+        const u = new SpeechSynthesisUtterance(m.text);
+        u.onend = () => speak.classList.remove("speaking");
+        u.onerror = () => speak.classList.remove("speaking");
+        speak.classList.add("speaking");
+        speechSynthesis.speak(u);
+      });
+      meta.appendChild(speak);
+    }
+    if (m.id && (mine || hasPerm("deleteMessages"))){
+      const del = document.createElement("button");
+      del.type = "button"; del.className = "msg-action-btn msg-del-btn"; del.title = "Delete message"; del.setAttribute("aria-label", "Delete message");
+      del.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+      del.addEventListener("click", () => { if (db) db.collection(roomPath("messages")).doc(m.id).delete().catch(() => toast("Couldn't delete that message.")); });
+      meta.appendChild(del);
+    }
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble" + (m.isError ? " error-bubble" : "");
+    bubble.textContent = m.text || "";
+    // Tint the bubble in the sender's own color (the same one on their
+    // avatar) so it's obvious at a glance who's talking — Toma's purple,
+    // your own messages in your color, everyone else in theirs.
+    if (m.colorVar && !m.isError){
+      const base = isBot ? "--bubble-bot-bg" : "--bubble-human-bg";
+      bubble.style.background = `color-mix(in srgb, var(${m.colorVar}) 16%, var(${base}))`;
+      bubble.style.borderColor = `color-mix(in srgb, var(${m.colorVar}) 42%, var(--border-soft))`;
+    }
+
+    col.appendChild(meta); col.appendChild(bubble);
+    row.appendChild(col);
+    return row;
+  }
+
+  function scrollToBottom(){
+    const thread = $("#thread");
+    thread.scrollTop = thread.scrollHeight;
+    $("#jump").classList.remove("show");
+  }
+  $("#jump").addEventListener("click", scrollToBottom);
+  $("#thread").addEventListener("scroll", () => {
+    const thread = $("#thread");
+    nearBottom = thread.scrollHeight - thread.scrollTop - thread.clientHeight < 140;
+    if (nearBottom) $("#jump").classList.remove("show");
+  });
+
+  /* ---------------------------------------------------------------- */
+  /* bots                                                              */
+  function buildPrompt(bot, opts){
+    opts = opts || {};
+    const others = allBots().filter(b => b.id !== bot.id).map(b => b.name).join(", ");
+    const styleNote = bot.burstStyle
+      ? " Write your reply as 2 to 4 short separate texts, one per line — like firing off a quick burst of messages in a row instead of one long one, the way people actually text. Plain text, no markdown, no bullets, no numbering, never prefix your name."
+      : " Keep replies short — 1 to 4 sentences, plain text, no markdown, never prefix your name.";
+    const header = `You are ${bot.name}, one voice in a small group chat called "${roomName || ROOM_TITLE}". ${bot.persona} Other participants include the humans in the room and other bots (${others}).${styleNote}`;
+    if (opts.greet || !messages.length){
+      return header + `\n\nSomeone just brought you into the conversation. Say a brief, natural hello and what you're good for — one or two sentences.`;
+    }
+    const transcript = messages.slice(-24).map(m => `${m.senderName}: ${m.text}`).join("\n");
+    if (opts.consider){
+      return header + `\n\nConversation so far:\n${transcript}\n\nNobody addressed you directly this time — you're free to stay quiet. Read the conversation and actually decide: do you have something worth adding right now (a reaction, an idea, a question, a joke — whatever fits you)? If yes, write ${bot.name}'s message and nothing else. If not, reply with exactly one word: PASS`;
+    }
+    return header + `\n\nConversation so far:\n${transcript}\n\nWrite ${bot.name}'s next message.`;
+  }
+  function isPass(text){ return /^pass[.!]?$/i.test((text || "").trim()); }
+
+  async function maybeTriggerBot(msgId, bot, opts){
+    opts = opts || {};
+    const isSmall = bot.level === "small";
+    if (isSmall){
+      if (!bot.allowed || (bot.speaksLeft || 0) <= 0){
+        if (!opts.consider) toast(`${bot.name} doesn't have permission to speak right now — grant it responses from its ⋮ menu.`);
+        return;
+      }
+    } else if (modeOf(bot) === "mute") { if (!opts.consider) toast(`${bot.name} is muted — click its badge to un-mute.`); return; }
+    if (!db || !sample) { if (!sample && !opts.consider) toast("AI replies aren't available in this view."); return; }
+    const claimRef = db.doc(roomPath(`claims/${msgId}_${bot.id}`));
+    let claim;
+    try { claim = await acquireClaim(claimRef, { holder: HOLDER, ttlMs: 90000 }); } catch(e){ return; }
+    if (!claim.acquired) return;
+
+    try {
+      const existing = await db.collection(roomPath("messages")).where("replyTo","==",msgId).where("botId","==",bot.id).limit(1).get();
+      if (!existing.empty) return;
+    } catch(e){ /* if the check fails, still proceed — dedup is best-effort */ }
+
+    if (room) room.presence({ activeBotId: bot.id });
+    setBotThinking(bot.id, true);
+    try {
+      const prompt = buildPrompt(bot, opts);
+      const { text } = await sample(prompt, { modelTier: bot.tier || "quick", cache:false });
+      if (opts.consider && isPass(text)) return; // it thought about it and had nothing to add
+      if (bot.thinkDelayMs){
+        // Vary how long the pause feels instead of always landing near the
+        // same spot — mostly a normal-ish beat, but sometimes a quick
+        // almost-no-pause reply and sometimes a long, real think.
+        const roll = Math.random();
+        const delay = roll < 0.2 ? 250 + Math.random() * 900
+          : roll < 0.8 ? bot.thinkDelayMs * (0.35 + Math.random() * 0.85)
+          : bot.thinkDelayMs * (1.6 + Math.random() * 1.6);
+        await new Promise((r) => setTimeout(r, delay));
+      }
+      // The caller (subscribeMessages) already knows the triggering message's
+      // own chainDepth/huddle straight from its stored fields and passes them
+      // through — authoritative, and independent of whatever's in the local
+      // `messages` cache (which only holds a bounded, most-recent window and
+      // must never be the thing depth-capping depends on). Poking a bot is
+      // the one caller that doesn't have that context handy, so it still
+      // falls back to a best-effort lookup.
+      let chainDepth, huddle;
+      if (typeof opts.chainDepth === "number"){
+        chainDepth = opts.chainDepth;
+        huddle = Array.isArray(opts.huddle) && opts.huddle.length ? opts.huddle : null;
+      } else {
+        const triggerMsg = messages.find(x => x.id === msgId);
+        chainDepth = (triggerMsg && triggerMsg.senderType === "bot") ? (triggerMsg.chainDepth || 1) + 1 : 1;
+        huddle = (triggerMsg && Array.isArray(triggerMsg.huddle) && triggerMsg.huddle.length) ? triggerMsg.huddle : null;
+      }
+      // A burstStyle bot's reply comes back as several lines (per the prompt's
+      // styleNote above) — post each as its own message, staggered a bit, so
+      // it reads like a quick run of texts instead of one long message. A
+      // huddle tag only ever rides on the LAST part: tagging every part would
+      // let each one independently re-trigger the other huddled bot, turning
+      // one turn's burst into that many extra replies every round.
+      let parts = bot.burstStyle ? text.split("\n").map((s) => s.trim()).filter(Boolean).slice(0, 5) : [text];
+      if (!parts.length) parts = [text];
+      for (let i = 0; i < parts.length; i++){
+        if (i > 0) await new Promise((r) => setTimeout(r, 450 + Math.random() * 650));
+        await db.collection(roomPath("messages")).add(Object.assign({
+          text: parts[i], senderName: bot.name, senderType:"bot", botId: bot.id, colorVar: bot.colorVar, ts: Date.now(), replyTo: msgId, chainDepth,
+        }, (huddle && i === parts.length - 1) ? { huddle } : {}));
+      }
+      if (isSmall) decrementBotSpeaks(bot.id);
+    } catch (e) {
+      // Stay quiet about failures from an unprompted "consider" pass — the viewer
+      // never asked for that reply, so a background hiccup shouldn't interrupt them.
+      if (opts.consider){ /* no-op */ }
+      else if (e && e.code === "not_granted"){
+        toast(`${bot.name} needs permission to reply — allow Claude access for this page to use bots.`, 4500);
+      } else if (e && (e.code === "rate_limited")){
+        toast(`${bot.name} is getting rate-limited — try again in a bit.`);
+      } else if (e){
+        toast(`${bot.name} couldn't reply right now.`);
+      }
+    } finally {
+      setBotThinking(bot.id, false);
+      if (room) room.presence({ activeBotId: null });
+      claimRef.delete().catch(()=>{});
+    }
+  }
+
+  function pokeBot(bot){
+    if (!sample){ toast("AI replies aren't available in this view."); return; }
+    const last = messages[messages.length-1];
+    const msgId = last ? last.id : "genesis";
+    maybeTriggerBot(msgId, bot, { greet: !last });
+  }
+
+})();
+</script>
+
+</body>
+</html>
