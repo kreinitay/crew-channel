@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const model = modelTier === "complex" ? "llama-3.3-70b-versatile" : "llama-3.1-8b-instant";
+  const model = modelTier === "complex" ? "openai/gpt-oss-120b" : "openai/gpt-oss-20b";
 
   try {
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
